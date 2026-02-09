@@ -4,6 +4,9 @@ import { env } from "@/config/env";
 
 let cached: { client: MongoClient } | null = null;
 
+/**
+ * @deprecated Migrating to Supabase.
+ */
 export async function getMongoClient() {
   if (cached?.client) return cached.client;
   const uri = env.MONGODB_URI;
@@ -18,6 +21,7 @@ export async function getMongoClient() {
  * Get database instance for a specific user
  * @param auth0Id - User's Auth0 ID
  * @returns MongoDB database instance for the user
+ * @deprecated Migrating to Supabase.
  */
 export async function getUserDb(auth0Id: string) {
   const client = await getMongoClient();

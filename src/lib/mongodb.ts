@@ -14,6 +14,9 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
+/**
+ * @deprecated This project is migrating to Supabase. Do not use MongoDB for new features.
+ */
 async function connectToDatabase() {
   if (!cached) {
     cached = global.mongoose = { conn: null, promise: null };
