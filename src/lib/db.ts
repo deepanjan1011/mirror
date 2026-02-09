@@ -1,11 +1,12 @@
 import { MongoClient } from "mongodb";
 import { getUserDatabaseName } from "./auth";
+import { env } from "@/config/env";
 
 let cached: { client: MongoClient } | null = null;
 
 export async function getMongoClient() {
   if (cached?.client) return cached.client;
-  const uri = process.env.MONGODB_URI!;
+  const uri = env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI missing");
   const client = new MongoClient(uri, { maxPoolSize: 10 });
   await client.connect();

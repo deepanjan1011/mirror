@@ -1,5 +1,6 @@
 import { CohereClient } from 'cohere-ai';
 import dns from 'dns';
+import { env } from '@/config/env';
 
 // Import Cohere types
 import type { ChatMessage } from 'cohere-ai/api/types';
@@ -10,16 +11,16 @@ let useIPv4Fallback = false;
 
 // Initialize Cohere client
 const cohere = new CohereClient({
-  token: process.env.COHERE_API_KEY!,
+  token: env.COHERE_API_KEY,
 });
 
 // Helper to handle IPv6/IPv4 fallback
 function handleNetworkError(error: any) {
   // Check if it's an IPv6 connection timeout
-  if (!useIPv4Fallback && 
-      (error.message?.includes('Connect Timeout') || 
-       error.message?.includes('ETIMEDOUT') ||
-       error.code === 'UND_ERR_CONNECT_TIMEOUT')) {
+  if (!useIPv4Fallback &&
+    (error.message?.includes('Connect Timeout') ||
+      error.message?.includes('ETIMEDOUT') ||
+      error.code === 'UND_ERR_CONNECT_TIMEOUT')) {
     console.log('⚠️ IPv6 connection failed, switching to IPv4 fallback');
     dns.setDefaultResultOrder('ipv4first');
     useIPv4Fallback = true;
@@ -43,7 +44,7 @@ export async function generateText(prompt: string, options?: {
       maxTokens: options?.maxTokens || 1000,
       temperature: options?.temperature || 0.7,
     });
-    
+
     return response.generations?.[0]?.text || '';
   } catch (error) {
     console.error('Error generating text with Cohere:', error);
@@ -61,9 +62,9 @@ export async function chatCompletion(messages: Array<{
   maxTokens?: number;
 }) {
   // Convert messages to the format expected by Cohere
-  const chatHistory: Array<{role: 'USER' | 'CHATBOT' | 'SYSTEM'; message: string}> = [];
+  const chatHistory: Array<{ role: 'USER' | 'CHATBOT' | 'SYSTEM'; message: string }> = [];
   let lastUserMessage = '';
-  
+
   for (const msg of messages) {
     if (msg.role === 'user') {
       lastUserMessage = msg.content;
@@ -74,7 +75,7 @@ export async function chatCompletion(messages: Array<{
       });
     }
   }
-  
+
   async function attemptChat() {
     const response = await cohere.chat({
       message: lastUserMessage,
@@ -83,10 +84,10 @@ export async function chatCompletion(messages: Array<{
       temperature: options?.temperature || 0.7,
       maxTokens: options?.maxTokens || 1000,
     });
-    
+
     return response.text || '';
   }
-  
+
   try {
     return await attemptChat();
   } catch (error: any) {
@@ -116,7 +117,7 @@ export async function getEmbeddings(texts: string[], options?: {
       model: options?.model || 'embed-english-v3.0',
       inputType: options?.inputType || 'search_document',
     });
-    
+
     return response.embeddings;
   } catch (error) {
     console.error('Error getting embeddings from Cohere:', error);
@@ -133,40 +134,40 @@ export async function rerank(query: string, documents: string[], options?: {
   if (!query || query.trim().length === 0) {
     throw new Error('Query cannot be empty');
   }
-  
+
   if (!documents || documents.length === 0) {
     console.warn('⚠️ [RERANK] No documents to rerank');
     return [];
   }
-  
+
   // Filter out empty documents
   const validDocuments = documents.filter(doc => doc && doc.trim().length > 0);
   if (validDocuments.length === 0) {
     console.warn('⚠️ [RERANK] All documents are empty');
     return [];
   }
-  
+
   async function attemptRerank() {
     console.log('🔍 [RERANK] Starting rerank with:', {
       queryLength: query.length,
       documentCount: validDocuments.length,
       model: options?.model || 'rerank-english-v3.0',
       topN: options?.topN || 5,
-      apiKeyPresent: !!process.env.COHERE_API_KEY,
+      apiKeyPresent: !!env.COHERE_API_KEY,
       usingIPv4: useIPv4Fallback
     });
-    
+
     const response = await cohere.rerank({
       query,
       documents: validDocuments.map(doc => ({ text: doc })),
       model: options?.model || 'rerank-english-v3.0',
       topN: Math.min(options?.topN || 5, validDocuments.length),
     });
-    
+
     console.log('✅ [RERANK] Rerank successful, got', response.results?.length, 'results');
     return response.results;
   }
-  
+
   try {
     return await attemptRerank();
   } catch (error: any) {
@@ -180,7 +181,7 @@ export async function rerank(query: string, documents: string[], options?: {
         throw retryError;
       }
     }
-    
+
     console.error('❌ [RERANK] Error details:', {
       message: error.message,
       statusCode: error.statusCode,

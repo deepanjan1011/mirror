@@ -3,10 +3,11 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { User } from '@supabase/supabase-js'
+import { env } from '@/config/env'
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  env.NEXT_PUBLIC_SUPABASE_URL,
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
 interface SupabaseContextType {
@@ -34,7 +35,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: string, session: any) => {
         console.log('Auth state change:', event, session?.user?.email)
         setUser(session?.user ?? null)
         setLoading(false)
