@@ -1,83 +1,30 @@
-// Auth adapter that translates Auth0 frontend to Supabase backend
-import { supabase } from './supabase'
+import { createClient } from '@/lib/supabase/server'
 
-export async function getUserFromToken(authTokens: any) {
-  // Extract user info from Auth0 tokens but use Supabase for data storage
-  const userEmail = authTokens.email || authTokens.user?.email
-  const userName = authTokens.name || authTokens.user?.name
-  const auth0UserId = authTokens.sub || authTokens.user_id
-  
-  if (!userEmail) {
-    throw new Error('No email found in auth tokens')
+// New adapter using Supabase Auth
+export async function extractUserFromHeaders(request: Request) {
+  // In the new flow, we don't really need headers if we use cookies 
+  // via getUser(), but for API routes we might want to check
+
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error || !user) {
+    return { email: null, id: null }
   }
-  
-  // Find or create user in Supabase
-  let { data: user, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', userEmail)
-    .single()
-  
-  if (error && error.code === 'PGRST116') {
-    // User doesn't exist, create them
-    const { data: newUser, error: createError } = await supabase
-      .from('users')
-      .insert({
-        email: userEmail,
-        name: userName || userEmail.split('@')[0],
-        // Store original Auth0 ID for reference if available
-      })
-      .select()
-      .single()
-    
-    if (createError) {
-      throw new Error(`Failed to create user: ${createError.message}`)
-    }
-    
-    user = newUser
-  } else if (error) {
-    throw new Error(`Failed to fetch user: ${error.message}`)
+
+  return {
+    email: user.email,
+    id: user.id
   }
-  
-  return user
 }
 
-export function extractUserFromHeaders(request: Request) {
-  // Extract user info from headers (handle both old and new formats)
-  const userEmail = request.headers.get('x-user-email')
-  const userId = request.headers.get('x-user-id')
-  const authorization = request.headers.get('authorization')
-  
-  // For backward compatibility, try to extract from localStorage-style auth
-  // The frontend passes user data via different headers depending on the component
-  const authTokens = authorization?.replace('Bearer ', '')
-  
-  return {
-    email: userEmail,
-    id: userId,
-    authorization,
-    authTokens
-  }
+// Deprecated or compatibility functions can be removed or stubbed
+export async function getUserFromToken(authTokens: any) {
+  throw new Error('Deprecated: Use Supabase getUser() instead')
 }
 
 export async function getUserFromRequest(request: Request) {
-  const tokens = localStorage?.getItem?.('auth_tokens')
-  const userData = localStorage?.getItem?.('user_data')
-  
-  if (tokens && userData) {
-    try {
-      const parsedTokens = JSON.parse(tokens)
-      const parsedUser = JSON.parse(userData)
-      
-      return {
-        email: parsedUser.email,
-        name: parsedUser.name,
-        sub: parsedUser.sub
-      }
-    } catch (error) {
-      console.error('Error parsing user data:', error)
-    }
-  }
-  
-  return null
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
 }

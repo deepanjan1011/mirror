@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { AgentLoading } from "@/components/agent-loading"
-import { Dashboard } from "@/components/dashboard"
+import { login } from "@/app/login/actions"
+import { createClient } from "@/lib/supabase/client"
 
 export function LoginForm({
   className,
@@ -22,97 +23,48 @@ export function LoginForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
   const [showLoading, setShowLoading] = useState(false)
 
-  // Check for existing authentication on component mount
-  useEffect(() => {
-    const userData = localStorage.getItem('user_data')
-    const tokens = localStorage.getItem('auth_tokens')
-    
-    if (userData && tokens) {
-      setShowLoading(true)
-      console.log('🔐 User already authenticated:', JSON.parse(userData))
-    }
-  }, [])
-
   const handleLoadingComplete = () => {
-    const userData = localStorage.getItem('user_data')
-    if (userData) {
-      // Redirect to projects page after loading animation completes
-      window.location.href = '/projects'
-    }
+    // Redirect handled by server action or middleware mainly, 
+    // but here we might want to just show the loading state then force reload/redirect
+    window.location.href = '/projects'
     setShowLoading(false)
   }
 
-  // If user is already authenticated, redirect to projects
-  if (user) {
-    window.location.href = '/projects'
-    return null
-  }
-
-  const handleSocialLogin = async (connection: string) => {
-    console.log(`🚀 ${connection} login not implemented yet - using M2M flow only`)
-    alert(`${connection} login will be implemented separately. Please use email/password for now.`)
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    const supabase = createClient()
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('📧 Attempting email login with:', { email })
-    
-    if (!email || !password) {
-      console.error('❌ Email and password are required')
-      return
-    }
-    
-    // Clear any old/invalid tokens before attempting login
-    localStorage.removeItem('auth_tokens');
-    localStorage.removeItem('user_data');
-    
     setIsLoading(true)
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
 
-      const data = await response.json()
+    const formData = new FormData()
+    formData.append('email', email)
+    formData.append('password', password)
 
-      if (response.ok) {
-        console.log('✅ Login successful:', data.user)
-        
-        // Store tokens in localStorage for session management
-        // Store the entire response as auth_tokens (contains access_token, etc.)
-        localStorage.setItem('auth_tokens', JSON.stringify(data))
-        localStorage.setItem('user_data', JSON.stringify(data.user))
-        
-        // Clear form
-        setEmail('')
-        setPassword('')
-        
-        // Show loading animation before redirecting to projects
-        setShowLoading(true)
-      } else {
-        console.error('❌ Login failed:', data.error)
-        alert(data.error || 'Login failed')
-      }
-    } catch (error) {
-      console.error('❌ Login error:', error)
-      alert('Network error. Please try again.')
-    } finally {
+    const result = await login(formData)
+
+    if (result?.error) {
+      alert(result.error)
       setIsLoading(false)
+    } else {
+      // Success - show loading animation then redirect
+      setShowLoading(true)
     }
   }
 
   const handleSignup = () => {
-    console.log('📝 Redirecting to signup page...')
     window.location.href = '/signup'
   }
 
-  // Show loading animation if needed
   if (showLoading) {
     return <AgentLoading onComplete={handleLoadingComplete} />
   }
@@ -130,9 +82,9 @@ export function LoginForm({
           <form onSubmit={handleEmailLogin}>
             <div className="grid gap-6">
               <div className="flex flex-col gap-4 font-mono">
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   className="w-full cursor-pointer"
                   onClick={() => handleSocialLogin('apple')}
                   disabled={isLoading}
@@ -145,11 +97,11 @@ export function LoginForm({
                   </svg>
                   Login with Apple
                 </Button>
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   className="w-full cursor-pointer"
-                  onClick={() => handleSocialLogin('google-oauth2')}
+                  onClick={() => handleSocialLogin('google')}
                   disabled={isLoading}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 mr-2">
@@ -181,23 +133,17 @@ export function LoginForm({
                 <div className="grid gap-3 font-mono">
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
-                    {/* <a
-                      href="#"
-                      className="ml-auto font-mono text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a> */}
                   </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
+                  <Input
+                    id="password"
+                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required 
+                    required
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full font-mono cursor-pointer"
                   disabled={isLoading}
                 >
@@ -206,7 +152,7 @@ export function LoginForm({
               </div>
               <div className="text-center font-mono text-sm">
                 Don&apos;t have an account?{" "}
-                <button 
+                <button
                   type="button"
                   onClick={handleSignup}
                   className="underline underline-offset-4 cursor-pointer bg-transparent border-none p-0"

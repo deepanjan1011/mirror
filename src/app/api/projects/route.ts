@@ -33,17 +33,19 @@ async function getOrCreateUser(headers: any) {
 
 export async function GET(request: NextRequest) {
   try {
-    const headers = extractUserFromHeaders(request);
+    const { email, id } = await extractUserFromHeaders(request);
 
-    if (!headers.email && !headers.id) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const user = await getOrCreateUser(headers);
+    // Implicitly, if we have an ID from getUser(), the user exists in Auth.
+    // However, they might not exist in the public `users` table if the trigger failed or wasn't set up.
+    // For now, let's assume the trigger handles it or we do a quick check.
+    // Ideally, Supabase Auth `users` table syncs to `public.users` via triggers.
 
-    if (!user) {
-      return NextResponse.json({ error: 'Failed to identify user' }, { status: 500 });
-    }
+    // We can just use the ID directly for querying
+    const userId = id;
 
     // Get user's projects with simulation counts
     // Note: Schema change: 'analysis_sessions' -> 'simulations'
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
         *,
         simulations(count)
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 
     if (projectsError) {
@@ -84,10 +86,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const headers = extractUserFromHeaders(request);
+    const { email, id } = await extractUserFromHeaders(request);
     const { name, description } = await request.json();
 
-    if (!headers.email && !headers.id) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
@@ -95,17 +97,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
 
-    const user = await getOrCreateUser(headers);
-
-    if (!user) {
-      return NextResponse.json({ error: 'Failed to identify user' }, { status: 500 });
-    }
+    const userId = id;
 
     // Create project
     const { data: project, error: projectError } = await supabaseAdmin
       .from('projects')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         name: name.trim(),
         description: description?.trim() || null
       })

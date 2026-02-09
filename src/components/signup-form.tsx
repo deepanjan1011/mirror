@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { signup } from "@/app/login/actions"
+import { createClient } from "@/lib/supabase/client"
 
 export function SignUpForm({
   className,
@@ -21,105 +23,40 @@ export function SignUpForm({
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
 
-  // Check for existing authentication on component mount
-  useEffect(() => {
-    const userData = localStorage.getItem('user_data')
-    const tokens = localStorage.getItem('auth_tokens')
-    
-    if (userData && tokens) {
-      setUser(JSON.parse(userData))
-    }
-  }, [])
-
-  // If user is already authenticated, show a different UI
-  if (user) {
-    return (
-      <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl font-mono">Welcome back!</CardTitle>
-            <CardDescription className="font-mono">
-              You're already signed in as {user.email}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => {
-                localStorage.removeItem('user_data')
-                localStorage.removeItem('auth_tokens')
-                setUser(null)
-                window.location.reload()
-              }}
-              variant="outline" 
-              className="w-full font-mono"
-            >
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const handleSocialLogin = async (connection: string) => {
-    console.log(`🚀 ${connection} signup not implemented yet - using M2M flow only`)
-    alert(`${connection} signup will be implemented separately. Please use email/password for now.`)
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    const supabase = createClient()
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
   }
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (password !== confirmPassword) {
       alert('Passwords do not match')
       return
     }
 
-    if (!email || !password) {
-      alert('Email and password are required')
-      return
-    }
-
     setIsLoading(true)
-    try {
-      console.log('🚀 Creating user via API...', { email })
-      
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          name: email.split('@')[0] // Use email prefix as name
-        }),
-      })
 
-      const data = await response.json()
+    const formData = new FormData()
+    formData.append('email', email)
+    formData.append('password', password)
 
-      if (response.ok) {
-        console.log('✅ User created successfully:', data)
-        alert('Account created successfully! Please check your email to verify your account.')
-        
-        // Clear form
-        setEmail('')
-        setPassword('')
-        setConfirmPassword('')
-        
-        // Optionally redirect to login
-        // window.location.href = '/login'
-      } else {
-        console.error('❌ Signup failed:', data.error)
-        alert(data.error || 'Failed to create account')
-      }
-    } catch (error) {
-      console.error('❌ Signup error:', error)
-      alert('Network error. Please try again.')
-    } finally {
-      setIsLoading(false)
+    const result = await signup(formData)
+
+    if (result?.error) {
+      alert(result.error)
+    } else {
+      alert('Account created successfully! Please check your email to verify your account.')
+      // Redirect logic handled by action or we can force it here if action didn't
     }
+    setIsLoading(false)
   }
 
   const handleLogin = () => {
@@ -139,9 +76,9 @@ export function SignUpForm({
           <form onSubmit={handleEmailSignup}>
             <div className="grid gap-6">
               <div className="flex flex-col gap-4 font-mono">
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   className="w-full cursor-pointer"
                   onClick={() => handleSocialLogin('apple')}
                   disabled={isLoading}
@@ -154,11 +91,11 @@ export function SignUpForm({
                   </svg>
                   Signup with Apple
                 </Button>
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   className="w-full cursor-pointer"
-                  onClick={() => handleSocialLogin('google-oauth2')}
+                  onClick={() => handleSocialLogin('google')}
                   disabled={isLoading}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 mr-2">
@@ -191,28 +128,28 @@ export function SignUpForm({
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
                   </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
+                  <Input
+                    id="password"
+                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required 
+                    required
                   />
                 </div>
                 <div className="grid gap-3 font-mono">
                   <div className="flex items-center">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                   </div>
-                  <Input 
-                    id="confirmPassword" 
-                    type="password" 
+                  <Input
+                    id="confirmPassword"
+                    type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    required 
+                    required
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full font-mono cursor-pointer"
                   disabled={isLoading}
                 >
@@ -221,7 +158,7 @@ export function SignUpForm({
               </div>
               <div className="text-center font-mono text-sm">
                 Already have an account?{" "}
-                <button 
+                <button
                   type="button"
                   onClick={handleLogin}
                   className="underline underline-offset-4 cursor-pointer bg-transparent border-none p-0"

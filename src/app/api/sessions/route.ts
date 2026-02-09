@@ -1,52 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { extractUserFromHeaders } from '@/lib/auth-adapter';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
-    const userEmail = request.headers.get('x-user-email');
-    const userId = request.headers.get('x-user-id');
+    const { email, id } = await extractUserFromHeaders(request);
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
-    if (!userEmail && !userId) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Find user in Supabase
-    let { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', userEmail || `user_${userId}@tunnel.local`)
-      .single();
-
-    if (userError && userError.code === 'PGRST116') {
-      // Create user if doesn't exist
-      const { data: newUser, error: createError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          email: userEmail || `user_${userId}@tunnel.local`,
-          name: userEmail?.split('@')[0] || `User ${userId}`
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-      }
-      user = newUser;
-    }
+    const userId = id;
 
     // Get sessions for this project and user
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from('analysis_sessions')
       .select('*')
       .eq('project_id', projectId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 
     if (sessionsError) {
@@ -84,8 +61,8 @@ export async function POST(request: NextRequest) {
     const userId = request.headers.get('x-user-id');
 
     if (!projectId || !sessionName || !prompt) {
-      return NextResponse.json({ 
-        error: 'Project ID, session name, and prompt are required' 
+      return NextResponse.json({
+        error: 'Project ID, session name, and prompt are required'
       }, { status: 400 });
     }
 
@@ -122,7 +99,7 @@ export async function POST(request: NextRequest) {
       .from('analysis_sessions')
       .insert({
         project_id: projectId,
-        user_id: user.id,
+        user_id: userId,
         session_name: sessionName,
         prompt: prompt,
         analysis_state: analysisState || {},
@@ -136,7 +113,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
     }
 
-    console.log('✅ Created session for user:', user.email, 'Session:', session.session_name);
+    console.log('✅ Created session for user:', email, 'Session:', session.session_name);
 
     // Format to match old API
     const formattedSession = {
