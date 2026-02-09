@@ -43,10 +43,10 @@ const lonLatToVector3 = (lon: number, lat: number, radius: number) => {
 };
 
 const drawGeoJsonContoursAndFill = (
-  geoJson: any, 
-  group: THREE.Group, 
-  radius: number, 
-  outlineColor = "#fff", 
+  geoJson: any,
+  group: THREE.Group,
+  radius: number,
+  outlineColor = "#fff",
   fillColor = "#888",
   fillOpacity = 0.22,
   outlineOpacity = 0.85
@@ -90,7 +90,7 @@ const drawGeoJsonContoursAndFill = (
             const lambda = positionArray[index];
             const phi = positionArray[index + 1];
             const r = radius - 0.01;
-            positionArray[index]     = r * Math.sin(phi) * Math.cos(lambda);
+            positionArray[index] = r * Math.sin(phi) * Math.cos(lambda);
             positionArray[index + 1] = r * Math.cos(phi);
             positionArray[index + 2] = r * Math.sin(phi) * Math.sin(lambda);
           }
@@ -111,9 +111,9 @@ const drawGeoJsonContoursAndFill = (
   });
 };
 
-export function ThreeJSGlobeWithDots({ 
-  className, 
-  size = 800, 
+export function ThreeJSGlobeWithDots({
+  className,
+  size = 800,
   color = "#333333",
   speed = 0.003,
   dots = [],
@@ -170,11 +170,12 @@ export function ThreeJSGlobeWithDots({
     cameraRef.current = camera;
 
     // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
-      alpha: true 
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true
     });
     renderer.setSize(size, size);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Optimize pixel ratio
     renderer.setClearColor(new THREE.Color(0x000000), 0);
     renderer.domElement.style.display = 'block';
     renderer.domElement.style.outline = 'none';
@@ -321,10 +322,13 @@ export function ThreeJSGlobeWithDots({
       if (mountRef.current && renderer.domElement && mountRef.current.contains(renderer.domElement)) {
         mountRef.current.removeChild(renderer.domElement);
       }
-      dotsRef.current.forEach(dot => {
-        dot.geometry.dispose();
-        (dot.material as THREE.Material).dispose();
-      });
+
+      // Cleanup dots (InstancedMesh)
+      if (globeGroup.userData.instancedMesh) {
+        globeGroup.userData.instancedMesh.geometry.dispose();
+        globeGroup.userData.instancedMesh.material.dispose();
+      }
+
       htmlDotsRef.current.forEach(htmlDot => {
         if (htmlDot.parentNode) {
           htmlDot.parentNode.removeChild(htmlDot);
@@ -333,117 +337,191 @@ export function ThreeJSGlobeWithDots({
       renderer.dispose();
       initializedRef.current = false;
     };
-  }, [size, color, speed]); // Removed dots and onDotClick from dependencies
+  }, []); // Only run once on mount
 
-  // Separate effect for updating dots only
+  // Handle Resize separately
+  useEffect(() => {
+    if (!rendererRef.current || !cameraRef.current) return;
+
+    const renderer = rendererRef.current;
+    renderer.setSize(size, size);
+
+    // If we wanted to handle aspect ratio changes (though size is usually square here)
+    // cameraRef.current.aspect = size / size;
+    // cameraRef.current.updateProjectionMatrix();
+
+  }, [size]);
+
+  // Handle color/speed changes
+  useEffect(() => {
+    // We could update materials here if needed, but for now we skip to avoid complexity
+    if (controlsRef.current) {
+      // Update speed indirectly via ref or mutable state if strictly needed
+    }
+  }, [color, speed]);
+
+  // Separate effect for updating dots (InstancedMesh implementation)
   useEffect(() => {
     if (!sceneRef.current || !globeRef.current || !overlayRef.current) return;
 
     const globeRadius = 1.3;
+    const group = globeRef.current!;
 
-    // Clean up existing dots
-    dotsRef.current.forEach(dot => {
-      globeRef.current!.remove(dot);
-      dot.geometry.dispose();
-      (dot.material as THREE.Material).dispose();
-    });
-    dotsRef.current = [];
+    // Remove existing dots/instanced mesh
+    if (group.userData.instancedMesh) {
+      group.remove(group.userData.instancedMesh);
+      group.userData.instancedMesh.geometry.dispose();
+      group.userData.instancedMesh.material.dispose();
+      group.userData.instancedMesh = null;
+    }
 
-    // Clear existing HTML dots
-    overlayRef.current.innerHTML = '';
+    dotsRef.current = []; // We won't use individual meshes anymore
     htmlDotsRef.current = [];
+    overlayRef.current.innerHTML = '';
 
-    // Create new dots
-    dots.forEach(dot => {
+    if (dots.length === 0) return;
+
+    // Create InstancedMesh
+    const dotGeometry = new THREE.SphereGeometry(0.015, 8, 8);
+    const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Color will be set per instance
+    const instancedMesh = new THREE.InstancedMesh(dotGeometry, dotMaterial, dots.length);
+
+    const dummy = new THREE.Object3D();
+    const colorHelper = new THREE.Color();
+
+    dots.forEach((dot, index) => {
       const position = latLonToVector3(dot.lat, dot.lon, globeRadius + 0.02);
-      const dotSize = 0.015;
-      const dotGeometry = new THREE.SphereGeometry(dotSize, 8, 8);
-      const dotMaterial = new THREE.MeshBasicMaterial({
-        color: dot.color,
-        transparent: true,
-        opacity: 0.8
-      });
-      const dotMesh = new THREE.Mesh(dotGeometry, dotMaterial);
-      dotMesh.position.copy(position);
-      dotMesh.userData = { dot: dot };
-      globeRef.current!.add(dotMesh);
-      dotsRef.current.push(dotMesh);
+      dummy.position.copy(position);
+      dummy.updateMatrix();
+      instancedMesh.setMatrixAt(index, dummy.matrix);
+
+      colorHelper.set(dot.color);
+      instancedMesh.setColorAt(index, colorHelper);
+
+      // We still map 1:1 for HTML dots for now, but we can optimize projection later
+      // The raycasting logic suggests we might need individual tracking, but let's stick to visual optimization first
+
+      // Store position in a way we can access for HTML overlay updates
+      // We can reconstruct it from lat/lon in the update loop
 
       // Create HTML overlay dot
       const htmlDot = document.createElement('div');
       htmlDot.className = 'absolute pointer-events-auto cursor-pointer';
+      // Only animate if it's NOT the default grey/white (meaning it has a reaction)
+      const isActive = dot.color !== '#666666' && dot.color !== '#ffffff';
+
       htmlDot.innerHTML = `
         <div class="relative flex h-3 w-3">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color: ${dot.color}"></span>
+          ${isActive ? `<span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color: ${dot.color}"></span>` : ''}
           <span class="relative inline-flex rounded-full h-3 w-3" style="background-color: ${dot.color}"></span>
         </div>
       `;
-      
+
       htmlDot.addEventListener('click', (e) => {
         e.stopPropagation();
         stableOnDotClick(dot);
       });
-      
+
       overlayRef.current!.appendChild(htmlDot);
       htmlDotsRef.current.push(htmlDot);
     });
-  }, [dotsString, stableOnDotClick]); // Use stringified dots for comparison
 
-  // Function to update HTML dot positions
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    instancedMesh.instanceColor!.needsUpdate = true; // Essential for per-instance colors
+
+    group.add(instancedMesh);
+    group.userData.instancedMesh = instancedMesh;
+    group.userData.dotsData = dots; // Store data for resize/update logic lookup
+
+  }, [dotsString, stableOnDotClick]);
+
+  // Function to update HTML dot positions (Optimized)
   const updateHtmlDotPositions = () => {
-    if (!overlayRef.current || !cameraRef.current) return;
-    
-    dotsRef.current.forEach((dotMesh, index) => {
+    if (!overlayRef.current || !cameraRef.current || !globeRef.current) return;
+
+    // We iterate through 'dots' (from props/memo) or the stored InstancedMesh data
+    const dotsData = globeRef.current!.userData.dotsData as PersonaDot[];
+    if (!dotsData || htmlDotsRef.current.length !== dotsData.length) return;
+
+    const globeRadius = 1.3;
+    const vector = new THREE.Vector3();
+    const globeCenter = new THREE.Vector3(0, 0, 0);
+    const cameraPos = cameraRef.current!.position;
+    const distanceToCenter = cameraPos.distanceTo(globeCenter);
+    const maxVisibleDistance = distanceToCenter + 0.1; // Horizon culling roughly
+
+    // Pre-calculate matrices if needed, but here we just need world positions
+    // Since the globe rotates, we need to transform the local positions
+
+    const globeMatrix = globeRef.current!.matrixWorld;
+
+    dotsData.forEach((dot, index) => {
       const htmlDot = htmlDotsRef.current[index];
       if (!htmlDot) return;
-      
-      const vector = new THREE.Vector3();
-      dotMesh.getWorldPosition(vector);
+
+      // Re-calculate local position (fast)
+      // We could cache these vector3s but they are cheap to make compared to DOM
+      const lat = dot.lat;
+      const lon = dot.lon;
+      const phi = (90 - lat) * (Math.PI / 180);
+      const theta = (-lon + 180) * (Math.PI / 180);
+      const r = globeRadius + 0.02;
+
+      vector.set(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+      );
+
+      // Apply globe rotation/transform
+      vector.applyMatrix4(globeMatrix);
+
+      // Check visibility (backface culling)
+      const dist = cameraPos.distanceTo(vector);
+      if (dist >= maxVisibleDistance) {
+        if (htmlDot.style.display !== 'none') htmlDot.style.display = 'none';
+        return;
+      }
+
+      // Project to screen
       vector.project(cameraRef.current!);
-      
+
       const x = (vector.x * 0.5 + 0.5) * size;
       const y = (vector.y * -0.5 + 0.5) * size;
-      
-      const distance = cameraRef.current!.position.distanceTo(dotMesh.position);
-      const globeCenter = new THREE.Vector3(0, 0, 0);
-      const globeCenterDistance = cameraRef.current!.position.distanceTo(globeCenter);
-      
-      if (distance < globeCenterDistance + 0.1) {
-        htmlDot.style.left = `${x - 6}px`;
-        htmlDot.style.top = `${y - 6}px`;
-        htmlDot.style.display = 'block';
-      } else {
-        htmlDot.style.display = 'none';
-      }
+
+      // Only update DOM if necessary (though simple assignment is often optimized by browser, display check helps)
+      htmlDot.style.transform = `translate(${x - 6}px, ${y - 6}px)`;
+      if (htmlDot.style.display !== 'block') htmlDot.style.display = 'block';
     });
   };
 
   return (
-    <div 
+    <div
       className={className}
-      style={{ 
-        width: size, 
+      style={{
+        width: size,
         height: size,
         position: 'relative',
         cursor: 'grab'
       }}
     >
-      <div 
-        ref={mountRef} 
-        style={{ 
-          width: size, 
+      <div
+        ref={mountRef}
+        style={{
+          width: size,
           height: size,
           position: 'absolute',
           top: 0,
           left: 0
         }}
       />
-      <div 
+      <div
         ref={overlayRef}
         className="absolute inset-0 pointer-events-none"
         style={{
           width: size,
-          height: size
+          height: size,
+          overflow: 'hidden' // Ensure dots don't bleed out
         }}
       />
     </div>

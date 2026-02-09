@@ -45,31 +45,36 @@ interface AnalysisSession {
 interface SessionStore {
   // Current session state
   currentSession: AnalysisSession | null;
-  
+
   // Session list for sidebar
   sessions: AnalysisSession[];
-  
+
   // Loading states
   isLoadingSessions: boolean;
   isLoadingSession: boolean;
   isSaving: boolean;
-  
+
   // Auto-save state
   autoSaveEnabled: boolean;
   lastSavedAt: Date | null;
   hasUnsavedChanges: boolean;
-  
+
+  // Sync state
+  syncStatus: 'synced' | 'saving' | 'error';
+  error: string | null;
+
   // Actions
   createSession: (projectId: string, prompt: string, sessionName?: string) => Promise<AnalysisSession>;
   loadSession: (sessionId: string) => Promise<AnalysisSession>;
   updateSession: (updates: Partial<AnalysisSession>) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   listSessions: (projectId: string) => Promise<void>;
-  
+
   // State management
   setCurrentSession: (session: AnalysisSession | null) => void;
   updateCurrentSessionState: (analysisState?: any, uiState?: any) => void;
-  
+  setError: (error: string | null) => void;
+
   // Auto-save functionality
   enableAutoSave: () => void;
   disableAutoSave: () => void;
@@ -90,101 +95,83 @@ const useSessionStore = create<SessionStore>()(
       autoSaveEnabled: true,
       lastSavedAt: null,
       hasUnsavedChanges: false,
+      syncStatus: 'synced',
+      error: null,
+
+      setError: (error) => set({ error }),
 
       // Create new session
       createSession: async (projectId: string, prompt: string, sessionName?: string) => {
+        set({ error: null });
         try {
-          const tokens = localStorage.getItem('auth_tokens');
-          if (!tokens) throw new Error('Authentication required');
-          
-          const parsedTokens = JSON.parse(tokens);
-          const accessToken = parsedTokens.access_token;
-          
-          const userData = localStorage.getItem('user_data');
-          const parsedUser = userData ? JSON.parse(userData) : null;
-          
           // Generate session name if not provided
           const finalSessionName = sessionName || prompt.substring(0, 50) || `Session ${new Date().toLocaleString()}`;
-          
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          };
-          
-          if (parsedUser?.email) {
-            headers['x-user-email'] = parsedUser.email;
-          }
-          
+
           console.log('📝 [CREATE-SESSION] Creating session:', { projectId, prompt: prompt.substring(0, 50), sessionName: finalSessionName });
-          
+
           const response = await fetch('/api/sessions', {
             method: 'POST',
-            headers,
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
               projectId,
               prompt,
               sessionName: finalSessionName
             })
           });
-          
+
           if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to create session');
           }
-          
+
           const data = await response.json();
           const newSession = data.session;
-          
+
           set(state => ({
             currentSession: newSession,
             sessions: [newSession, ...state.sessions],
             hasUnsavedChanges: false,
-            lastSavedAt: new Date()
+            lastSavedAt: new Date(),
+            syncStatus: 'synced'
           }));
-          
+
           return newSession;
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error creating session:', error);
+          set({ error: error.message || 'Failed to create session', syncStatus: 'error' });
           throw error;
         }
       },
 
       // Load specific session
       loadSession: async (sessionId: string) => {
-        set({ isLoadingSession: true });
-        
+        set({ isLoadingSession: true, error: null });
+
         try {
-          const tokens = localStorage.getItem('auth_tokens');
-          if (!tokens) throw new Error('Authentication required');
-          
-          const parsedTokens = JSON.parse(tokens);
-          const userId = parsedTokens.sub || parsedTokens.user_id;
-          
-          const response = await fetch(`/api/sessions/${sessionId}`, {
-            headers: {
-              'Authorization': `Bearer ${parsedTokens.access_token}`
-            }
-          });
-          
+          const response = await fetch(`/api/sessions/${sessionId}`);
+
           if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to load session');
           }
-          
+
           const data = await response.json();
           const session = data.session;
-          
+
           set({
             currentSession: session,
             hasUnsavedChanges: false,
             lastSavedAt: new Date(),
-            isLoadingSession: false
+            isLoadingSession: false,
+            syncStatus: 'synced'
           });
-          
+
           return session;
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error loading session:', error);
-          set({ isLoadingSession: false });
+          set({ isLoadingSession: false, error: error.message || 'Failed to load session' });
           throw error;
         }
       },
@@ -193,132 +180,91 @@ const useSessionStore = create<SessionStore>()(
       updateSession: async (updates: Partial<AnalysisSession>) => {
         const { currentSession } = get();
         if (!currentSession) return;
-        
-        set({ isSaving: true });
-        
+
+        set({ isSaving: true, syncStatus: 'saving', error: null });
+
         try {
-          const tokens = localStorage.getItem('auth_tokens');
-          if (!tokens) throw new Error('Authentication required');
-          
-          const parsedTokens = JSON.parse(tokens);
-          const userData = localStorage.getItem('user_data');
-          const parsedUser = userData ? JSON.parse(userData) : null;
-          
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${parsedTokens.access_token}`
-          };
-          
-          if (parsedUser?.email) {
-            headers['x-user-email'] = parsedUser.email;
-          }
-          
           const response = await fetch(`/api/sessions/${currentSession._id}`, {
             method: 'PUT',
-            headers,
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify(updates)
           });
-          
+
           if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to update session');
           }
-          
+
           const data = await response.json();
           const updatedSession = data.session;
-          
+
           set(state => ({
             currentSession: updatedSession,
-            sessions: state.sessions.map(s => 
+            sessions: state.sessions.map(s =>
               s._id === updatedSession._id ? updatedSession : s
             ),
             hasUnsavedChanges: false,
             lastSavedAt: new Date(),
-            isSaving: false
+            isSaving: false,
+            syncStatus: 'synced'
           }));
-          
-        } catch (error) {
+
+        } catch (error: any) {
           console.error('Error updating session:', error);
-          set({ isSaving: false });
+          set({ isSaving: false, syncStatus: 'error', error: error.message || 'Failed to save session' });
           throw error;
         }
       },
 
       // Delete session
       deleteSession: async (sessionId: string) => {
+        set({ error: null });
         try {
-          const tokens = localStorage.getItem('auth_tokens');
-          if (!tokens) throw new Error('Authentication required');
-          
-          const parsedTokens = JSON.parse(tokens);
-          const userId = parsedTokens.sub || parsedTokens.user_id;
-          
           const response = await fetch(`/api/sessions/${sessionId}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${parsedTokens.access_token}`
-            }
+            method: 'DELETE'
           });
-          
+
           if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to delete session');
           }
-          
+
           set(state => ({
             sessions: state.sessions.filter(s => s._id !== sessionId),
             currentSession: state.currentSession?._id === sessionId ? null : state.currentSession
           }));
-          
-        } catch (error) {
+
+        } catch (error: any) {
           console.error('Error deleting session:', error);
+          set({ error: error.message || 'Failed to delete session' });
           throw error;
         }
       },
 
       // List sessions for project
       listSessions: async (projectId: string) => {
-        set({ isLoadingSessions: true });
-        
+        set({ isLoadingSessions: true, error: null });
+
         try {
-          const tokens = localStorage.getItem('auth_tokens');
-          if (!tokens) throw new Error('Authentication required');
-          
-          const parsedTokens = JSON.parse(tokens);
-          
-          const userData = localStorage.getItem('user_data');
-          const parsedUser = userData ? JSON.parse(userData) : null;
-          
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json'
-          };
-          
-          if (parsedTokens.access_token) {
-            headers['Authorization'] = `Bearer ${parsedTokens.access_token}`;
-            if (parsedUser?.email) {
-              headers['x-user-email'] = parsedUser.email;
-            }
-          } else {
-            headers['x-user-id'] = parsedTokens.sub || parsedTokens.user_id || 'dev_user_' + Date.now();
-          }
-          
-          const response = await fetch(`/api/sessions?projectId=${projectId}`, { headers });
-          
+          const response = await fetch(`/api/sessions?projectId=${projectId}`);
+
           if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to list sessions');
           }
-          
+
           const data = await response.json();
-          
+
           set({
             sessions: data.sessions,
             isLoadingSessions: false
           });
-          
-        } catch (error) {
+
+        } catch (error: any) {
           console.error('Error listing sessions:', error);
-          set({ isLoadingSessions: false });
+          set({ isLoadingSessions: false, error: error.message || 'Failed to list sessions' });
           throw error;
         }
       },
@@ -336,13 +282,13 @@ const useSessionStore = create<SessionStore>()(
       updateCurrentSessionState: (analysisState?: any, uiState?: any) => {
         set(state => {
           if (!state.currentSession) return state;
-          
+
           const updatedSession = {
             ...state.currentSession,
             ...(analysisState && { analysisState: { ...state.currentSession.analysisState, ...analysisState } }),
             ...(uiState && { uiState: { ...state.currentSession.uiState, ...uiState } })
           };
-          
+
           return {
             currentSession: updatedSession,
             hasUnsavedChanges: true
@@ -357,11 +303,11 @@ const useSessionStore = create<SessionStore>()(
       // Auto-save session
       autoSaveSession: async () => {
         const { currentSession, hasUnsavedChanges, autoSaveEnabled, isSaving } = get();
-        
+
         if (!currentSession || !hasUnsavedChanges || !autoSaveEnabled || isSaving) {
           return;
         }
-        
+
         try {
           await get().updateSession({
             analysisState: currentSession.analysisState,
@@ -369,6 +315,7 @@ const useSessionStore = create<SessionStore>()(
           });
         } catch (error) {
           console.error('Auto-save failed:', error);
+          set({ syncStatus: 'error' });
         }
       },
 

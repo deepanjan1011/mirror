@@ -12,7 +12,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await chatCompletion(message, {
+    const response = await chatCompletion([
+      { role: 'user', content: message }
+    ], {
       model,
       temperature,
       maxTokens,
