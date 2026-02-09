@@ -4,8 +4,8 @@ import { extractUserFromHeaders } from '@/lib/auth-adapter';
 
 export async function GET(request: NextRequest) {
   try {
-    const headers = extractUserFromHeaders(request);
-    
+    const headers = await extractUserFromHeaders(request);
+
     if (!headers.email && !headers.id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const headers = extractUserFromHeaders(request);
+    const headers = await extractUserFromHeaders(request);
     const { name, description } = await request.json();
 
     if (!headers.email && !headers.id) {

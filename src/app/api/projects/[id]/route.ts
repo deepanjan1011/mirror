@@ -8,8 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const headers = extractUserFromHeaders(request);
-    
+    const headers = await extractUserFromHeaders(request);
+
     console.log('🔍 [PROJECT-DETAIL] Headers:', headers);
     console.log('📋 [PROJECT-DETAIL] Fetching project ID:', id);
 
@@ -79,8 +79,8 @@ export async function GET(
       updatedAt: project.updated_at
     };
 
-    return NextResponse.json({ 
-      project: formattedProject 
+    return NextResponse.json({
+      project: formattedProject
     });
 
   } catch (error) {

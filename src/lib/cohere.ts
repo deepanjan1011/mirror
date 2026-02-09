@@ -20,7 +20,9 @@ function handleNetworkError(error: any) {
   if (!useIPv4Fallback &&
     (error.message?.includes('Connect Timeout') ||
       error.message?.includes('ETIMEDOUT') ||
-      error.code === 'UND_ERR_CONNECT_TIMEOUT')) {
+      error.message?.includes('EHOSTUNREACH') ||
+      error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+      error.code === 'EHOSTUNREACH')) {
     console.log('⚠️ IPv6 connection failed, switching to IPv4 fallback');
     dns.setDefaultResultOrder('ipv4first');
     useIPv4Fallback = true;
@@ -30,7 +32,7 @@ function handleNetworkError(error: any) {
 }
 
 // Generic retry wrapper for AI API calls
-async function withRetry<T>(
+export async function withRetry<T>(
   operation: () => Promise<T>,
   maxRetries = 3,
   baseDelay = 1000
