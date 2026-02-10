@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, FolderOpen, Calendar, Activity, LogOut } from "lucide-react";
+import { Plus, FolderOpen, Calendar, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
@@ -133,10 +133,7 @@ export default function ProjectsPage() {
     router.push(`/dashboard?project=${projectId}`);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -155,37 +152,10 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-black/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="Tunnel Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-            />
-            <div>
-              <h1 className="text-md font-mono">Tunnel</h1>
-              <p className="text-xs text-white/60 font-mono">Projects</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-black text-white pt-20">
+      {/* Header removed - using global Navbar */}
 
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="font-mono text-white/80 hover:text-white hover:bg-white/10"
-            >
-              Logout
-              <LogOut className="w-4 h-4 mr-2" />
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* Main Content */}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
@@ -367,8 +337,8 @@ export default function ProjectsPage() {
                                       delay: index * 0.1 + i * 0.02,
                                     }}
                                     className={`h-6 w-2 ${isActive
-                                        ? "bg-white border border-white/30"
-                                        : "bg-white/10 border border-white/20"
+                                      ? "bg-white border border-white/30"
+                                      : "bg-white/10 border border-white/20"
                                       }`}
                                   />
                                 );

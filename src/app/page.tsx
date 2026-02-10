@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/announcement";
 import { ArrowUpRightIcon, Globe, Megaphone, FileText } from "lucide-react";
 
-// Square component for animated beam
+import { useAuth } from "@/providers/auth-provider";
+
 const Circle = React.forwardRef<
   HTMLDivElement,
   { className?: string; children?: React.ReactNode }
@@ -32,6 +33,52 @@ const Circle = React.forwardRef<
 });
 
 Circle.displayName = "Circle";
+
+function LandingNav() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // If loading, show nothing or skeleton
+  if (loading) return null;
+
+  // If user is logged in, show nothing (Global Navbar takes over)
+  // OR we can show a specific "Go to Dashboard" if we want to keep the transparent style
+  // But global navbar is fixed, so it might overlap.
+  // Let's hide this local nav if user is logged in, but we need to ensure the layout pushes down.
+  // Actually, the Global Navbar is fixed. If we hide this, the content moves up?
+  // No, because this nav is relative.
+  // If we return null, the "height: 1px" divider below allows content to start higher.
+  // Since Global Navbar is fixed top, we might need a spacer if we hide this.
+
+  if (user) {
+    return <div className="h-20"></div>; // Spacer for fixed navbar
+  }
+
+  return (
+    <nav className="relative z-10 flex items-center py-6 px-8 w-full mx-auto bg-black/50">
+      {/* Logo */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Image
+          src="/logo.png"
+          alt="Tunnel Logo"
+          width={32}
+          height={32}
+          className="w-8 h-8"
+        />
+        <span className="ml-1 text-lg text-white font-mono">Tunnel</span>
+      </div>
+
+      <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+        <button
+          onClick={() => router.push(user ? "/projects" : "/login")}
+          className="px-4 py-2 hover:bg-white/20 bg-white/5 text-xs text-white font-mono transition cursor-pointer"
+        >
+          {user ? "Dashboard ↗" : "Login ↗"}
+        </button>
+      </div>
+    </nav>
+  );
+}
 
 export default function Landing() {
   const router = useRouter();
@@ -60,28 +107,17 @@ export default function Landing() {
         }}
       >
         <div className="absolute inset-0 z-0"></div>
-        <nav className="relative z-10 flex items-center py-6 px-8 w-full mx-auto bg-black/50">
-          {/* Logo */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Image
-              src="/logo.png"
-              alt="Tunnel Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-            />
-            <span className="ml-1 text-lg text-white font-mono">Tunnel</span>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-            <button
-              onClick={() => router.push("/login")}
-              className="px-4 py-2 hover:bg-white/20 bg-white/5 text-xs text-white font-mono transition cursor-pointer"
-            >
-              Login ↗
-            </button>
-          </div>
-        </nav>
+        <div className="absolute inset-0 z-0"></div>
+        {/* Only show local nav if user is NOT logged in (otherwise global navbar is shown) */}
+        <div className="auth-check-nav">
+          {/* This logic will be handled by CSS or conditional rendering based on auth state if we had access to it here. 
+               Since this is a client component, let's use useAuth if possible, or just accept that for now we might have double nav 
+               until we add useAuth. 
+               
+               Actually, let's convert this to use useAuth.
+           */}
+          <LandingNav />
+        </div>
 
         <div
           style={{ height: "1px", backgroundColor: "white", opacity: 0.2 }}
@@ -142,7 +178,12 @@ export default function Landing() {
               <Button
                 size="lg"
                 className="font-mono text-sm px-8 py-3 cursor-pointer bg-white text-black hover:bg-white/90 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                onClick={() => router.push("/login")}
+                onClick={() => {
+                  // We need access to user here too, but Landing function doesn't use useAuth yet.
+                  // Let's assume standard redirect to login which handles auth check anyway, 
+                  // OR better: redirect to /projects which will redirect to login if not auth.
+                  router.push("/projects");
+                }}
               >
                 Explore Tunnel
                 <ArrowUpRightIcon className="ml-2 h-4 w-4" />

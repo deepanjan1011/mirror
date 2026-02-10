@@ -1,0 +1,181 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/providers/auth-provider";
+import { Button } from "@/components/ui/button";
+import { LogOut, Menu, X, Home, Info, FolderOpen, Lightbulb } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+export function Navbar() {
+    const pathname = usePathname();
+    const router = useRouter();
+    const { user, signOut } = useAuth();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Hide navbar on Login, and Signup pages
+    // Also hide on Home if user is NOT logged in
+    if (['/login', '/signup'].includes(pathname) || (pathname === '/' && !user)) {
+        return null;
+    }
+
+    const handleLogout = async () => {
+        await signOut();
+        router.push("/login"); // Explicit redirect ensures we go to login
+        router.refresh(); // Refresh to clear any cached auth state
+    };
+
+    const navLinks = [
+        { name: "Home", href: "/", icon: Home },
+        { name: "About", href: "/about", icon: Info },
+        { name: "Projects", href: "/projects", icon: FolderOpen },
+        // "Idea" links to projects for now, as that's where ideas start
+        { name: "Idea", href: "/projects", icon: Lightbulb },
+    ];
+
+    return (
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="flex items-center justify-between h-16">
+                    {/* Logo */}
+                    <Link href={user ? "/projects" : "/"} className="flex items-center gap-2 group">
+                        <Image
+                            src="/logo.png"
+                            alt="Tunnel Logo"
+                            width={28}
+                            height={28}
+                            className="w-7 h-7 transition-transform group-hover:scale-110"
+                        />
+                        <span className="text-lg font-mono text-white">Tunnel</span>
+                    </Link>
+
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center gap-8">
+                        <div className="flex items-center gap-6">
+                            {navLinks.map((link) => {
+                                const Icon = link.icon;
+                                const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+
+                                return (
+                                    <Link
+                                        key={link.name}
+                                        href={link.href}
+                                        className={cn(
+                                            "flex items-center gap-2 text-sm font-mono transition-colors",
+                                            isActive
+                                                ? "text-white"
+                                                : "text-white/60 hover:text-white"
+                                        )}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        {link.name}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        <div className="h-6 w-px bg-white/10" />
+
+                        {/* Auth Buttons */}
+                        {user ? (
+                            <div className="flex items-center gap-6">
+                                <span className="text-xs text-white/40 font-mono">
+                                    {user.email}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleLogout}
+                                    className="font-mono text-white hover:text-white hover:bg-white/10 px-2"
+                                >
+                                    Logout
+                                    <LogOut className="w-4 h-4 ml-2 rotate-180" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                <Link href="/login">
+                                    <Button variant="ghost" size="sm" className="font-mono text-white/80 hover:text-white">
+                                        Login
+                                    </Button>
+                                </Link>
+                                <Link href="/signup">
+                                    <Button size="sm" className="font-mono bg-white text-black hover:bg-white/90">
+                                        Sign Up
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Mobile Menu Button */}
+                    <button
+                        className="md:hidden text-white/80 hover:text-white"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-black border-b border-white/10">
+                    <div className="px-6 py-4 space-y-4">
+                        {navLinks.map((link) => {
+                            const Icon = link.icon;
+                            const isActive = pathname === link.href;
+                            return (
+                                <Link
+                                    key={link.name}
+                                    href={link.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={cn(
+                                        "flex items-center gap-3 py-2 text-base font-mono",
+                                        isActive ? "text-white" : "text-white/60"
+                                    )}
+                                >
+                                    <Icon className="w-5 h-5" />
+                                    {link.name}
+                                </Link>
+                            );
+                        })}
+
+                        <div className="h-px bg-white/10 my-4" />
+
+                        {user ? (
+                            <>
+                                <div className="text-xs text-white/40 font-mono px-2 mb-2">
+                                    Signed in as {user.email}
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleLogout}
+                                    className="w-full justify-start font-mono text-white/80 hover:text-white hover:bg-white/10"
+                                >
+                                    <LogOut className="w-4 h-4 mr-2" />
+                                    Logout
+                                </Button>
+                            </>
+                        ) : (
+                            <div className="space-y-2">
+                                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Button variant="ghost" className="w-full justify-start font-mono text-white/80">
+                                        Login
+                                    </Button>
+                                </Link>
+                                <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Button className="w-full font-mono bg-white text-black">
+                                        Sign Up
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </nav>
+    );
+}
