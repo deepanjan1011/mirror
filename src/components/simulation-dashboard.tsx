@@ -1803,8 +1803,16 @@ Improved idea:`,
       });
 
       vapiRef.current.on('error', (error: any) => {
-        console.error('Vapi error:', error);
-        const errorMessage = error?.error?.message || error?.message || 'An error occurred with Vapi';
+        console.error('🔴 [VAPI EVENT] Error:', error);
+
+        let errorDetail = 'An error occurred with Vapi';
+        try {
+          errorDetail = JSON.stringify(error, null, 2);
+        } catch (e) {
+          errorDetail = error.message || String(error);
+        }
+
+        const errorMessage = error?.error?.message || error?.message || 'Vapi Error (check console)';
         setError(errorMessage);
         setConnectionStatus('error');
         setIsConnecting(false);
@@ -1899,33 +1907,55 @@ Remember: You've already formed your opinion. You're here to discuss it, not to 
       'Hello! How can I help you today?';
 
     try {
-      await vapiRef.current.start({
+      // Use minimal config first to test connection
+      const assistantOptions = {
         name: persona?.name || 'Assistant',
         firstMessage: firstMessage,
+        // Let Vapi use dashboard defaults if these fail
         model: {
           provider: 'openai',
           model: 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
-              content: systemPrompt || 'You are a helpful AI assistant. Keep responses conversational and concise.',
+              content: systemPrompt || 'You are a helpful AI assistant.',
             },
           ],
         },
-        voice: {
-          provider: 'playht',
-          voiceId: 's3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json', // Using a default safe voice
-        },
-      });
+        // Remove voice config to rely on Vapi dashboard defaults / standard voices
+        // This avoids issues if PlayHT isn't configured in the user's Vapi account
+      };
 
-      // Remove the auto-opening of feedback modal
+      console.log('🎙️ [VAPI] Starting call with config:', JSON.stringify(assistantOptions, null, 2));
+
+      await vapiRef.current.start(assistantOptions as any);
 
     } catch (err: any) {
-      console.error('Failed to start call:', err);
-      setError(err?.message || 'Failed to start call');
+      console.error('❌ [VAPI] Failed to start call:', err);
+
+      // Detailed error logging
+      let errorMsg = err.message || 'Unknown error';
+      if (typeof err === 'object') {
+        try {
+          errorMsg = JSON.stringify(err, null, 2);
+        } catch (e) {
+          errorMsg = 'Circular/Unstringifiable Error Object';
+        }
+      }
+
+      if (errorMsg.includes('ejection') || (err.error?.message || '').includes('ejection')) {
+        setError('Connection Rejected: Please check your Vapi Dashboard -> Provider Keys (OpenAI).');
+      } else {
+        setError(`Voice Error: ${errorMsg}`);
+      }
+
       setIsConnecting(false);
       setConnectionStatus('error');
     }
+
+    // Remove the auto-opening of feedback modal
+
+
   };
 
   const endCall = async () => {
