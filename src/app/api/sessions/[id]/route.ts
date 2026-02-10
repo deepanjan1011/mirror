@@ -1,37 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
+import { extractUserFromHeaders } from '@/lib/auth-adapter';
+
+// Helper to get or create user (reused logic for consistency)
+async function getOrCreateUser(supabase: any, headers: any) {
+  const userEmail = headers.email || `user_${headers.id}@tunnel.local`;
+
+  let { data: user, error: userError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', userEmail)
+    .single();
+
+  if (userError && userError.code === 'PGRST116') {
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert({
+        id: headers.id, // Explicitly match Auth ID if available
+        email: userEmail,
+        name: headers.email?.split('@')[0] || `User ${headers.id}`,
+        auth0_id: headers.id
+      })
+      .select()
+      .single();
+
+    if (createError) throw createError;
+    return newUser;
+  } else if (userError) {
+    throw userError;
+  }
+  return user;
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const userEmail = request.headers.get('x-user-email');
-    const userId = request.headers.get('x-user-id');
+    const supabase = await createClient();
+    const { id: sessionId } = await params;
+    const { email, id } = await extractUserFromHeaders(request);
 
-    if (!userEmail && !userId) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Find user
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', userEmail || `user_${userId}@tunnel.local`)
-      .single();
-
-    if (userError) {
-      console.error('Error finding user:', userError);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const userId = id;
 
     // Get session
-    const { data: session, error: sessionError } = await supabaseAdmin
+    const { data: session, error: sessionError } = await supabase
       .from('analysis_sessions')
       .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('id', sessionId)
+      .eq('user_id', userId)
       .single();
 
     if (sessionError) {
@@ -67,26 +88,24 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const supabase = await createClient();
+    const { id: sessionId } = await params;
     const { sessionName, analysisState, uiState } = await request.json();
-    const userEmail = request.headers.get('x-user-email');
-    const userId = request.headers.get('x-user-id');
+    const { email, id } = await extractUserFromHeaders(request);
 
-    if (!userEmail && !userId) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Find user
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', userEmail || `user_${userId}@tunnel.local`)
-      .single();
-
-    if (userError) {
-      console.error('Error finding user:', userError);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // Ensure user exists in public.users table (Sync Auth -> Public)
+    try {
+      await getOrCreateUser(supabase, { email, id });
+    } catch (e) {
+      console.error('Error syncing user:', e);
+      // Continue anyway?
     }
+
+    const userId = id;
 
     // Update session
     const updateData: any = {};
@@ -94,11 +113,11 @@ export async function PUT(
     if (analysisState) updateData.analysis_state = analysisState;
     if (uiState) updateData.ui_state = uiState;
 
-    const { data: session, error: sessionError } = await supabaseAdmin
+    const { data: session, error: sessionError } = await supabase
       .from('analysis_sessions')
       .update(updateData)
-      .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('id', sessionId)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -135,32 +154,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const userEmail = request.headers.get('x-user-email');
-    const userId = request.headers.get('x-user-id');
+    const supabase = await createClient();
+    const { id: sessionId } = await params;
+    const { email, id } = await extractUserFromHeaders(request);
 
-    if (!userEmail && !userId) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Find user
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', userEmail || `user_${userId}@tunnel.local`)
-      .single();
-
-    if (userError) {
-      console.error('Error finding user:', userError);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const userId = id;
 
     // Delete session
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await supabase
       .from('analysis_sessions')
       .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('id', sessionId)
+      .eq('user_id', userId);
 
     if (deleteError) {
       console.error('Error deleting session:', deleteError);
