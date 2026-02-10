@@ -473,24 +473,14 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   const fetchProject = async () => {
     try {
-      const tokens = localStorage.getItem('auth_tokens');
-      if (!tokens) return;
-
-      const parsedTokens = JSON.parse(tokens);
-      const userData = localStorage.getItem('user_data');
-      const parsedUser = userData ? JSON.parse(userData) : null;
-
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
 
-      if (parsedTokens.access_token) {
-        headers['Authorization'] = `Bearer ${parsedTokens.access_token}`;
-        if (parsedUser?.email) {
-          headers['x-user-email'] = parsedUser.email;
-        }
-      } else {
-        headers['x-user-id'] = parsedTokens.sub || parsedTokens.user_id || 'dev_user_' + Date.now();
+      // Cookies are sent automatically by the browser
+      // We just need to pass the user email if available for simulated user ID generation
+      if (user?.email) {
+        headers['x-user-email'] = user.email;
       }
 
       const response = await fetch(`/api/projects/${projectId}`, { headers });
@@ -845,12 +835,10 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
     try {
       console.log('🔍 [NICHE-SEARCH] Finding niche personas for:', postContent);
 
-      const tokens = localStorage.getItem('auth_tokens');
-      if (!tokens) {
+      if (!user) {
         throw new Error('Please log in to run simulations');
       }
 
-      const parsedTokens = JSON.parse(tokens);
       // First extract the niche
       const nicheResponse = await fetch('/api/extract-niche', {
         method: 'POST',

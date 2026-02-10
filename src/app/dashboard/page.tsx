@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Dashboard } from "@/components/dashboard"
-import { AgentLoading } from "@/components/agent-loading"
+import { createClient } from "@/lib/supabase/client"
 
 function DashboardContent() {
   const [user, setUser] = useState<any>(null)
@@ -11,42 +11,33 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const supabase = createClient()
 
   useEffect(() => {
-    const userData = localStorage.getItem('user_data')
-    const tokens = localStorage.getItem('auth_tokens')
-    
-    if (!userData || !tokens) {
-      // No authentication found, redirect to login
-      router.push('/login')
-      return
-    }
+    const checkAuth = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser()
 
-    try {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-      
+      if (error || !user) {
+        router.push('/login')
+        return
+      }
+
+      setUser(user)
+
       // Get project ID from URL params
       const projectParam = searchParams.get('project')
       if (projectParam) {
         setProjectId(projectParam)
-        console.log('🔐 User authenticated on dashboard with project:', parsedUser, projectParam)
       } else {
         // No project specified, redirect to projects page
         router.push('/projects')
-        return
       }
-    } catch (error) {
-      console.error('❌ Error parsing user data:', error)
-      // Clear invalid data and redirect to login
-      localStorage.removeItem('user_data')
-      localStorage.removeItem('auth_tokens')
-      router.push('/login')
-      return
+
+      setIsLoading(false)
     }
 
-    setIsLoading(false)
-  }, [router, searchParams])
+    checkAuth()
+  }, [router, searchParams, supabase])
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -66,7 +57,6 @@ function DashboardContent() {
     )
   }
 
-  // This shouldn't happen due to the redirect above, but just in case
   return null
 }
 

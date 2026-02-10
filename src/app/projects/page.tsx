@@ -19,10 +19,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, FolderOpen, Calendar, Activity, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 interface Project {
   _id: string;
@@ -43,186 +43,87 @@ export default function ProjectsPage() {
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user_data");
-    const tokens = localStorage.getItem("auth_tokens");
+    const checkUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-    // Clear invalid localStorage data
-    if (userData === "undefined") {
-      console.log('⚠️ Clearing invalid user_data');
-      localStorage.removeItem("user_data");
-    }
-    if (tokens === "undefined") {
-      console.log('⚠️ Clearing invalid auth_tokens');
-      localStorage.removeItem("auth_tokens");
-    }
-
-    if (!userData || !tokens || userData === "undefined" || tokens === "undefined") {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      const parsedTokens = JSON.parse(tokens);
-      
-      // Validate that tokens have required fields
-      if (!parsedTokens.access_token && !parsedTokens.user) {
-        console.log('⚠️ Invalid token structure, clearing and redirecting');
-        localStorage.removeItem("user_data");
-        localStorage.removeItem("auth_tokens");
+      if (error || !user) {
         router.push("/login");
         return;
       }
-      
-      setUser(parsedUser);
+
+      setUser(user);
       fetchProjects();
-    } catch (error) {
-      console.error('Failed to parse auth data:', error);
-      localStorage.removeItem("user_data");
-      localStorage.removeItem("auth_tokens");
-      router.push("/login");
-    }
-  }, [router]);
+    };
+
+    checkUser();
+  }, [router, supabase]);
 
   const fetchProjects = async () => {
     try {
-      const tokens = localStorage.getItem("auth_tokens");
-      if (!tokens) {
-        return;
-      }
-
-      const parsedTokens = JSON.parse(tokens);
-      const userData = localStorage.getItem("user_data");
-      const parsedUser = userData ? JSON.parse(userData) : null;
-
-      // Prepare headers with fallback for development
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      if (parsedTokens.access_token) {
-        headers["Authorization"] = `Bearer ${parsedTokens.access_token}`;
-        // Add user email for consistent user ID generation
-        if (parsedUser?.email) {
-          headers["x-user-email"] = parsedUser.email;
-        }
-      } else {
-        // Fallback for development mode
-        headers["x-user-id"] =
-          parsedTokens.sub || parsedTokens.user_id || "dev_user_" + Date.now();
-      }
-
-      const response = await fetch("/api/projects", { headers });
+      // Cookies are sent automatically
+      const response = await fetch("/api/projects", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
         setProjects(data.projects);
       } else {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to fetch projects");
       }
     } catch (error) {
-      // Silent error handling
+      console.error("Error fetching projects:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const createProject = async () => {
-    console.log('🚀 Create project clicked:', newProjectName);
-    
-    if (!newProjectName.trim()) {
-      console.log('❌ Project name is empty');
-      return;
-    }
+    if (!newProjectName.trim()) return;
 
     setIsCreating(true);
     try {
-      const tokens = localStorage.getItem("auth_tokens");
-      if (!tokens || tokens === "undefined") {
-        console.log('❌ No auth tokens found');
-        alert('You need to log in first');
-        router.push('/login');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
         return;
       }
 
-      let parsedTokens;
-      try {
-        parsedTokens = JSON.parse(tokens);
-      } catch (e) {
-        console.error('Failed to parse auth tokens:', e);
-        alert('Invalid authentication. Please log in again.');
-        localStorage.removeItem('auth_tokens');
-        localStorage.removeItem('user_data');
-        router.push('/login');
-        return;
-      }
-
-      const userData = localStorage.getItem("user_data");
-      
-      // Handle case where userData is the string "undefined"
-      let parsedUser = null;
-      if (userData && userData !== "undefined") {
-        try {
-          parsedUser = JSON.parse(userData);
-        } catch (e) {
-          console.error('Failed to parse user data:', e);
-          parsedUser = null;
-        }
-      }
-      
-      console.log('👤 User data:', { email: parsedUser?.email, hasToken: !!parsedTokens.access_token });
-
-      // Prepare headers with fallback for development
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      if (parsedTokens.access_token) {
-        headers["Authorization"] = `Bearer ${parsedTokens.access_token}`;
-        // Add user email for consistent user ID generation
-        if (parsedUser?.email) {
-          headers["x-user-email"] = parsedUser.email;
-        }
-      } else {
-        // Fallback for development mode
-        headers["x-user-id"] =
-          parsedTokens.sub || parsedTokens.user_id || "dev_user_" + Date.now();
-      }
-
-      console.log('📡 Sending create project request');
-      
       const response = await fetch("/api/projects", {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           name: newProjectName,
           description: newProjectDescription,
         }),
       });
 
-      console.log('📡 Response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Project created:', data.project);
         setProjects([data.project, ...projects]);
         setNewProjectName("");
         setNewProjectDescription("");
         setShowCreateDialog(false);
       } else {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Unknown error" }));
-        console.error('❌ Failed to create project:', errorData);
-        alert(`Failed to create project: ${errorData.error || 'Unknown error'}`);
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to create project: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
-      console.error('💥 Error in createProject:', error);
-      alert(`Error creating project: ${error}`);
+      console.error("Error creating project:", error);
+      alert("Error creating project");
     } finally {
       setIsCreating(false);
     }
@@ -232,9 +133,8 @@ export default function ProjectsPage() {
     router.push(`/dashboard?project=${projectId}`);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user_data");
-    localStorage.removeItem("auth_tokens");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     router.push("/login");
   };
 
@@ -274,9 +174,6 @@ export default function ProjectsPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* <span className="text-sm font-mono text-white/80">
-              Welcome, {user?.name || user?.email}
-            </span> */}
             <Button
               variant="ghost"
               size="sm"
@@ -295,7 +192,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-mono text-white mb-2">
-              Welcome {user?.name || user?.email},
+              Welcome {user?.email},
             </h2>
             <p className="text-sm font-mono text-white/60">
               Manage your AI simulation projects and view insights
@@ -469,11 +366,10 @@ export default function ProjectsPage() {
                                       duration: 0.3,
                                       delay: index * 0.1 + i * 0.02,
                                     }}
-                                    className={`h-6 w-2 ${
-                                      isActive
+                                    className={`h-6 w-2 ${isActive
                                         ? "bg-white border border-white/30"
                                         : "bg-white/10 border border-white/20"
-                                    }`}
+                                      }`}
                                   />
                                 );
                               })}
