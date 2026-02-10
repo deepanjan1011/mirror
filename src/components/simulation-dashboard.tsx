@@ -1069,6 +1069,8 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
   };
 
   const addToFeedbackList = (persona: Persona, reaction: any) => {
+    console.log('🔔 [ADD-FEEDBACK] Button clicked', { persona: persona.name, reaction: reaction.attention });
+
     // Check if already in feedback list
     const personaId = (persona.user_metadata || persona).personaId;
     const alreadyExists = feedbackList.some(item =>
@@ -1077,6 +1079,11 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
     if (!alreadyExists) {
       setFeedbackList(prev => [...prev, { persona, reaction }]);
+      console.log('✅ [ADD-FEEDBACK] Added to feedback list. Total:', feedbackList.length + 1);
+      alert(`Added ${persona.name} to feedback list`);
+    } else {
+      console.log('⚠️ [ADD-FEEDBACK] Already in feedback list');
+      alert(`${persona.name} is already in the feedback list`);
     }
   };
 
@@ -2024,15 +2031,15 @@ Give me specific action items to address the feedback mentioned in the conversat
       const data = await response.json();
       console.log('📊 [FEEDBACK] API response:', data);
 
-      // Fix the response parsing - check for both possible response formats
-      if (data.success && (data.text || data.response)) {
-        const feedbackText = data.text || data.response;
+      // Fix the response parsing - the API returns { response: text } or { error: ... }
+      if (response.ok && data.response) {
+        const feedbackText = data.response;
         console.log('✅ [FEEDBACK] Got feedback from API:', feedbackText.substring(0, 100) + '...');
         setFeedbackSummary(feedbackText);
         setShowFeedback(true);
       } else {
         console.log('❌ [FEEDBACK] API failed:', data);
-        setFeedbackSummary('Failed to generate feedback. Please try again.');
+        setFeedbackSummary(`Failed to generate feedback: ${data.error || 'Unknown error'}`);
         setShowFeedback(true);
       }
 
@@ -2048,11 +2055,12 @@ Give me specific action items to address the feedback mentioned in the conversat
 
   // Update the openFeedbackModal function to only run once
   const openFeedbackModal = async () => {
+    console.log('🔔 [GET-FEEDBACK] Button clicked');
     console.log('🔄 [FEEDBACK] Opening feedback modal, transcript length:', transcript.length);
 
     // End the call first
     if (isInCall) {
-      console.log(' [FEEDBACK] Ending call first');
+      console.log('📞 [FEEDBACK] Ending call first');
       await endCall();
     }
 
@@ -2063,10 +2071,13 @@ Give me specific action items to address the feedback mentioned in the conversat
       await generateFeedbackSummary(fullConversation);
     } else if (showFeedback) {
       console.log('ℹ️ [FEEDBACK] Feedback already generated');
+      alert('Feedback has already been generated. Check the Mission Deliverables section.');
     } else if (isGeneratingFeedbackRef.current) {
       console.log('ℹ️ [FEEDBACK] Feedback generation already in progress');
+      alert('Feedback generation is already in progress...');
     } else {
       console.log('❌ [FEEDBACK] No transcript available');
+      alert('No conversation transcript available. Please have a voice call first.');
     }
   };
 
