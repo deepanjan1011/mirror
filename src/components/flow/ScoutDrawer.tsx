@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-interface ScoutResult {
+export interface ScoutResult {
   id: string | null;
   url: string;
   title: string;
@@ -11,9 +11,10 @@ interface ScoutResult {
 interface ScoutDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onAttach?: (result: ScoutResult) => void;
 }
 
-export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
+export function ScoutDrawer({ isOpen, onClose, onAttach }: ScoutDrawerProps) {
   const [urls, setUrls] = useState('https://partiful.com\nhttps://doodle.com\nhttps://when2meet.com\nhttps://eventbrite.com');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ScoutResult[]>([]);
@@ -316,8 +317,11 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
                 {result.id && result.status !== 'error' && (
                   <button
                     onClick={() => {
-                      // TODO: Open detailed view or attach to node
-                      console.log('View details for:', result.id);
+                      if (onAttach) {
+                        onAttach(result);
+                      } else {
+                        console.log('View details for:', result.id);
+                      }
                     }}
                     style={{
                       marginTop: '0.5rem',
@@ -330,7 +334,7 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
                       cursor: 'pointer'
                     }}
                   >
-                    View Details
+                    Attach to Map
                   </button>
                 )}
               </div>

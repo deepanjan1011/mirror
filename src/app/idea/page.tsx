@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { nodeTypes, type NodeData } from '@/components/flow/IdeaNodes';
 import { EvidenceDrawer } from '@/components/flow/EvidenceDrawer';
-import { ScoutDrawer } from '@/components/flow/ScoutDrawer';
+import { ScoutDrawer, type ScoutResult } from '@/components/flow/ScoutDrawer';
 import { getLayoutedElements } from '@/lib/flow/layout';
 
 interface IdeaResult {
@@ -174,6 +174,31 @@ const IdeaPage = () => {
     setEdges(layoutedEdges);
   }, [latestResult, generateNodesAndEdges, setNodes, setEdges]);
 
+  // ...
+
+  const handleAttachToMap = (result: ScoutResult) => {
+    const newNode: Node<NodeData> = {
+      id: `research-${Date.now()}`,
+      type: 'research',
+      position: { x: 0, y: 0 },
+      data: {
+        label: 'Competitor Research',
+        type: 'research',
+        content: {
+          title: result.title,
+          url: result.url,
+          preview: result.preview
+        },
+        nodeId: `research-${Date.now()}`,
+        // @ts-ignore
+        onClick: () => { }
+      }
+    };
+
+    setNodes((nds) => [...nds, newNode]);
+    setIsScoutDrawerOpen(false);
+  };
+
   React.useEffect(() => {
     if (activeTab === 'map') layoutFromLatest();
   }, [activeTab, layoutFromLatest]);
@@ -223,11 +248,11 @@ const IdeaPage = () => {
               <div className="flex gap-2 text-xs">
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className={`px-3 py-1 border ${activeTab==='chat' ? 'border-white/60 text-white' : 'border-white/20 text-white/60'}`}
+                  className={`px-3 py-1 border ${activeTab === 'chat' ? 'border-white/60 text-white' : 'border-white/20 text-white/60'}`}
                 >Chat</button>
                 <button
                   onClick={() => setActiveTab('map')}
-                  className={`px-3 py-1 border ${activeTab==='map' ? 'border-white/60 text-white' : 'border-white/20 text-white/60'}`}
+                  className={`px-3 py-1 border ${activeTab === 'map' ? 'border-white/60 text-white' : 'border-white/20 text-white/60'}`}
                 >Map</button>
               </div>
             )}
@@ -268,128 +293,128 @@ const IdeaPage = () => {
             </div>
           )}
           {activeTab === 'chat' && (
-          <div className="h-[55vh] overflow-y-auto pr-2 space-y-4">
-            {messages.length === 0 && (
-              <div className="text-white/50 text-xs font-mono">
-                Start by describing your product concept. I’ll expand it into target segments, features, risks, and KPIs.
-              </div>
-            )}
+            <div className="h-[55vh] overflow-y-auto pr-2 space-y-4">
+              {messages.length === 0 && (
+                <div className="text-white/50 text-xs font-mono">
+                  Start by describing your product concept. I’ll expand it into target segments, features, risks, and KPIs.
+                </div>
+              )}
 
-            {messages.map((m, idx) => (
-              <div key={idx} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                {m.role === 'user' ? (
-                  <div className="max-w-[80%] bg-white text-black px-3 py-2 text-xs font-mono">
-                    {m.text}
-                  </div>
-                ) : (
-                  <div className="max-w-[90%] w-full border border-white/10 bg-black/40 p-3 md:p-4 text-xs text-white/90 font-mono space-y-3">
-                    <div>
-                      <div className="text-white text-sm mb-1">Summary</div>
-                      <div className="text-white/80">{m.result.summary}</div>
+              {messages.map((m, idx) => (
+                <div key={idx} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                  {m.role === 'user' ? (
+                    <div className="max-w-[80%] bg-white text-black px-3 py-2 text-xs font-mono">
+                      {m.text}
                     </div>
-
-                    {m.result.segments?.length > 0 && (
+                  ) : (
+                    <div className="max-w-[90%] w-full border border-white/10 bg-black/40 p-3 md:p-4 text-xs text-white/90 font-mono space-y-3">
                       <div>
-                        <div className="text-white text-sm mb-1">Segments</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {m.result.segments.map((s, i) => (
-                            <div key={i} className="border border-white/10 p-2">
-                              <div className="text-white/90">{s.name}</div>
-                              <div className="text-white/60">{s.why_it_fits}</div>
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {s.hooks.map((h, hi) => (
-                                  <span key={hi} className="px-1.5 py-0.5 text-[10px] bg-white/10 text-white/80">{h}</span>
-                                ))}
+                        <div className="text-white text-sm mb-1">Summary</div>
+                        <div className="text-white/80">{m.result.summary}</div>
+                      </div>
+
+                      {m.result.segments?.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-1">Segments</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {m.result.segments.map((s, i) => (
+                              <div key={i} className="border border-white/10 p-2">
+                                <div className="text-white/90">{s.name}</div>
+                                <div className="text-white/60">{s.why_it_fits}</div>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {s.hooks.map((h, hi) => (
+                                    <span key={hi} className="px-1.5 py-0.5 text-[10px] bg-white/10 text-white/80">{h}</span>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {m.result.features?.length > 0 && (
-                      <div>
-                        <div className="text-white text-sm mb-1">Features</div>
-                        <ul className="list-disc list-inside text-white/80 space-y-0.5">
-                          {m.result.features.map((f, fi) => (
-                            <li key={fi}>{f}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {m.result.risks?.length > 0 && (
-                      <div>
-                        <div className="text-white text-sm mb-1">Risks & Mitigations</div>
-                        <ul className="space-y-1">
-                          {m.result.risks.map((r, ri) => (
-                            <li key={ri} className="border border-white/10 p-2">
-                              <div className="text-white/90">{r.risk}</div>
-                              <div className="text-white/60">{r.mitigation}</div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {m.result.social_fit?.length > 0 && (
-                      <div>
-                        <div className="text-white text-sm mb-1">Social Platform Fit</div>
-                        <div className="flex flex-wrap gap-2">
-                          {m.result.social_fit.map((sf, sfi) => (
-                            <div key={sfi} className="border border-white/10 p-2">
-                              <div className="text-white/90">{sf.platform}</div>
-                              <div className="text-white/60 max-w-[32rem]">{sf.why}</div>
-                            </div>
-                          ))}
+                      {m.result.features?.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-1">Features</div>
+                          <ul className="list-disc list-inside text-white/80 space-y-0.5">
+                            {m.result.features.map((f, fi) => (
+                              <li key={fi}>{f}</li>
+                            ))}
+                          </ul>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {m.result.improvements_by_segment?.length > 0 && (
-                      <div>
-                        <div className="text-white text-sm mb-1">Improvements by Segment</div>
-                        <div className="space-y-2">
-                          {m.result.improvements_by_segment.map((imp, ii) => (
-                            <div key={ii} className="border border-white/10 p-2">
-                              <div className="text-white/90">{imp.segment}</div>
-                              <ul className="list-disc list-inside text-white/80 space-y-0.5">
-                                {imp.ideas.map((idea, idI) => (
-                                  <li key={idI}>{idea}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
+                      {m.result.risks?.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-1">Risks & Mitigations</div>
+                          <ul className="space-y-1">
+                            {m.result.risks.map((r, ri) => (
+                              <li key={ri} className="border border-white/10 p-2">
+                                <div className="text-white/90">{r.risk}</div>
+                                <div className="text-white/60">{r.mitigation}</div>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {m.result.followups?.length > 0 && (
-                      <div>
-                        <div className="text-white text-sm mb-1">Follow-up Questions</div>
-                        <ul className="list-disc list-inside text-white/80 space-y-0.5">
-                          {m.result.followups.map((q, qi) => (
-                            <li key={qi}>{q}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                      {m.result.social_fit?.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-1">Social Platform Fit</div>
+                          <div className="flex flex-wrap gap-2">
+                            {m.result.social_fit.map((sf, sfi) => (
+                              <div key={sfi} className="border border-white/10 p-2">
+                                <div className="text-white/90">{sf.platform}</div>
+                                <div className="text-white/60 max-w-[32rem]">{sf.why}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                    {m.savedId && (
-                      <div className="pt-2">
-                        <a
-                          href={`/tunnel/phase-2?ideaId=${m.savedId}`}
-                          className="inline-flex items-center px-3 py-1.5 bg-white text-black text-xs"
-                        >
-                          Proceed to Phase 2 →
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                      {m.result.improvements_by_segment?.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-1">Improvements by Segment</div>
+                          <div className="space-y-2">
+                            {m.result.improvements_by_segment.map((imp, ii) => (
+                              <div key={ii} className="border border-white/10 p-2">
+                                <div className="text-white/90">{imp.segment}</div>
+                                <ul className="list-disc list-inside text-white/80 space-y-0.5">
+                                  {imp.ideas.map((idea, idI) => (
+                                    <li key={idI}>{idea}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {m.result.followups?.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-1">Follow-up Questions</div>
+                          <ul className="list-disc list-inside text-white/80 space-y-0.5">
+                            {m.result.followups.map((q, qi) => (
+                              <li key={qi}>{q}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {m.savedId && (
+                        <div className="pt-2">
+                          <a
+                            href={`/tunnel/phase-2?ideaId=${m.savedId}`}
+                            className="inline-flex items-center px-3 py-1.5 bg-white text-black text-xs"
+                          >
+                            Proceed to Phase 2 →
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {error && (
@@ -397,39 +422,39 @@ const IdeaPage = () => {
           )}
 
           {activeTab === 'chat' && (
-          <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g., A smart recipe app that orders missing ingredients"
-              className="flex-1 h-20 bg-black/40 border border-white/10 text-white text-xs p-2 font-mono outline-none"
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="h-10 px-4 bg-white text-black text-xs font-mono disabled:opacity-50"
-            >
-              {isLoading ? (
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    className="inline-block"
-                    style={{
-                      width: '1rem',
-                      height: '1rem',
-                      border: '2px solid rgba(0,0,0,0.3)',
-                      borderTop: '2px solid black',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}
-                  />
-                  Generating
-                </span>
-              ) : (
-                <span>Send</span>
-              )}
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="e.g., A smart recipe app that orders missing ingredients"
+                className="flex-1 h-20 bg-black/40 border border-white/10 text-white text-xs p-2 font-mono outline-none"
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className="h-10 px-4 bg-white text-black text-xs font-mono disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className="inline-block"
+                      style={{
+                        width: '1rem',
+                        height: '1rem',
+                        border: '2px solid rgba(0,0,0,0.3)',
+                        borderTop: '2px solid black',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}
+                    />
+                    Generating
+                  </span>
+                ) : (
+                  <span>Send</span>
+                )}
+              </button>
+            </form>
           )}
         </div>
       </main>
@@ -443,6 +468,7 @@ const IdeaPage = () => {
       <ScoutDrawer
         isOpen={isScoutDrawerOpen}
         onClose={() => setIsScoutDrawerOpen(false)}
+        onAttach={handleAttachToMap}
       />
     </div>
   );

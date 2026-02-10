@@ -4,8 +4,8 @@ import { IdeationResponseT } from '@/lib/schema';
 
 export interface NodeData {
   label: string;
-  type: 'summary' | 'segments' | 'features' | 'risks' | 'social_fit' | 'improvements' | 'followups';
-  content: string | IdeationResponseT['segments'] | IdeationResponseT['features'] | IdeationResponseT['risks'] | IdeationResponseT['social_fit'] | IdeationResponseT['improvements_by_segment'] | IdeationResponseT['followups'];
+  type: 'summary' | 'segments' | 'features' | 'risks' | 'social_fit' | 'improvements' | 'followups' | 'research';
+  content: string | IdeationResponseT['segments'] | IdeationResponseT['features'] | IdeationResponseT['risks'] | IdeationResponseT['social_fit'] | IdeationResponseT['improvements_by_segment'] | IdeationResponseT['followups'] | { title: string; url: string; preview: string };
   nodeId?: string;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
@@ -69,9 +69,9 @@ export function SummaryNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         📋 Summary
       </div>
-      <div style={{ 
-        overflow: 'hidden', 
-        textOverflow: 'ellipsis', 
+      <div style={{
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
         display: '-webkit-box',
         WebkitLineClamp: data.isExpanded ? 'none' : 3,
         WebkitBoxOrient: 'vertical',
@@ -121,10 +121,10 @@ export function SegmentsNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
         {segments.slice(0, data.isExpanded ? segments.length : 2).map((segment, i) => (
-          <div key={i} style={{ 
-            marginBottom: '6px', 
-            padding: '6px', 
-            background: 'rgba(255,255,255,0.1)', 
+          <div key={i} style={{
+            marginBottom: '6px',
+            padding: '6px',
+            background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
@@ -177,10 +177,10 @@ export function FeaturesNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
         {features.slice(0, data.isExpanded ? features.length : 3).map((feature, i) => (
-          <div key={i} style={{ 
-            marginBottom: '4px', 
-            padding: '4px 8px', 
-            background: 'rgba(255,255,255,0.1)', 
+          <div key={i} style={{
+            marginBottom: '4px',
+            padding: '4px 8px',
+            background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px',
             color: '#6ee7b7'
@@ -231,10 +231,10 @@ export function RisksNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
         {risks.slice(0, data.isExpanded ? risks.length : 2).map((risk, i) => (
-          <div key={i} style={{ 
-            marginBottom: '6px', 
-            padding: '6px', 
-            background: 'rgba(255,255,255,0.1)', 
+          <div key={i} style={{
+            marginBottom: '6px',
+            padding: '6px',
+            background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
@@ -289,10 +289,10 @@ export function SocialFitNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
         {socialFit.slice(0, data.isExpanded ? socialFit.length : 3).map((social, i) => (
-          <div key={i} style={{ 
-            marginBottom: '4px', 
-            padding: '4px 8px', 
-            background: 'rgba(255,255,255,0.1)', 
+          <div key={i} style={{
+            marginBottom: '4px',
+            padding: '4px 8px',
+            background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
@@ -343,10 +343,10 @@ export function ImprovementsNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
         {improvements.slice(0, data.isExpanded ? improvements.length : 2).map((improvement, i) => (
-          <div key={i} style={{ 
-            marginBottom: '6px', 
-            padding: '6px', 
-            background: 'rgba(255,255,255,0.1)', 
+          <div key={i} style={{
+            marginBottom: '6px',
+            padding: '6px',
+            background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
@@ -400,10 +400,10 @@ export function FollowupsNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
         {followups.slice(0, data.isExpanded ? followups.length : 2).map((question, i) => (
-          <div key={i} style={{ 
-            marginBottom: '4px', 
-            padding: '4px 8px', 
-            background: 'rgba(255,255,255,0.1)', 
+          <div key={i} style={{
+            marginBottom: '4px',
+            padding: '4px 8px',
+            background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px',
             color: '#d1d5db'
@@ -436,6 +436,66 @@ export function FollowupsNode({ data, selected }: NodeProps<NodeData>) {
   );
 }
 
+export function ResearchNode({ data, selected }: NodeProps<NodeData>) {
+  const style = {
+    ...nodeStyles.base,
+    background: 'rgba(30, 41, 59, 0.8)', // Slate-800 with opacity
+    borderColor: 'rgba(96, 165, 250, 0.5)', // Blue-400
+    boxShadow: selected ? '0 0 0 2px rgba(96, 165, 250, 0.8)' : 'none',
+    minWidth: '300px',
+  };
+
+  // Content for research node is expected to be { title, url, preview }
+  const content = typeof data.content === 'object' ? data.content : { title: 'Research', url: '', preview: data.content };
+  // @ts-ignore
+  const { title, url, preview } = content;
+
+  return (
+    <div style={style} onClick={data.onClick}>
+      <Handle type="target" position={Position.Top} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <span style={{ fontSize: '16px' }}>🔍</span>
+        <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+          {title || 'Market Research'}
+        </div>
+      </div>
+
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            fontSize: '11px',
+            color: '#60a5fa',
+            marginBottom: '6px',
+            textDecoration: 'none',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {url} ↗
+        </a>
+      )}
+
+      <div style={{
+        fontSize: '12px',
+        color: '#cbd5e1',
+        lineHeight: '1.4',
+        display: '-webkit-box',
+        WebkitLineClamp: 4,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden'
+      }}>
+        {preview}
+      </div>
+    </div>
+  );
+}
+
 // Node type mapping
 export const nodeTypes = {
   summary: SummaryNode,
@@ -445,4 +505,5 @@ export const nodeTypes = {
   social_fit: SocialFitNode,
   improvements: ImprovementsNode,
   followups: FollowupsNode,
+  research: ResearchNode,
 };
