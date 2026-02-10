@@ -1914,7 +1914,7 @@ Remember: You've already formed your opinion. You're here to discuss it, not to 
         },
         voice: {
           provider: 'playht',
-          voiceId: 'jennifer',
+          voiceId: 's3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json', // Using a default safe voice
         },
       });
 
