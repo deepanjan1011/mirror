@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { extractUserFromHeaders } from '@/lib/auth-adapter';
 
 // Helper to get or create user (reused logic for consistency)
-async function getOrCreateUser(headers: any) {
+async function getOrCreateUser(supabase: any, headers: any) {
   const userEmail = headers.email || `user_${headers.id}@tunnel.local`;
 
-  let { data: user, error: userError } = await supabaseAdmin
+  let { data: user, error: userError } = await supabase
     .from('users')
     .select('*')
     .eq('email', userEmail)
     .single();
 
   if (userError && userError.code === 'PGRST116') {
-    const { data: newUser, error: createError } = await supabaseAdmin
+    const { data: newUser, error: createError } = await supabase
       .from('users')
       .insert({
+        id: headers.id, // Explicitly set ID to match Auth ID
         email: userEmail,
         name: headers.email?.split('@')[0] || `User ${headers.id}`,
         auth0_id: headers.id // Store auth0_id if available
@@ -33,23 +34,18 @@ async function getOrCreateUser(headers: any) {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
     const { email, id } = await extractUserFromHeaders(request);
 
     if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Implicitly, if we have an ID from getUser(), the user exists in Auth.
-    // However, they might not exist in the public `users` table if the trigger failed or wasn't set up.
-    // For now, let's assume the trigger handles it or we do a quick check.
-    // Ideally, Supabase Auth `users` table syncs to `public.users` via triggers.
-
-    // We can just use the ID directly for querying
     const userId = id;
 
     // Get user's projects with simulation counts
     // Note: Schema change: 'analysis_sessions' -> 'simulations'
-    const { data: projects, error: projectsError } = await supabaseAdmin
+    const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select(`
         *,
@@ -86,6 +82,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
     const { email, id } = await extractUserFromHeaders(request);
     const { name, description } = await request.json();
 
@@ -97,10 +94,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
 
+    // Ensure user exists in public.users table (Sync Auth -> Public)
+    try {
+      await getOrCreateUser(supabase, { email, id });
+    } catch (e) {
+      console.error('Error syncing user:', e);
+      // Continue anyway? If sync fails, FK might fail too.
+    }
+
     const userId = id;
 
     // Create project
-    const { data: project, error: projectError } = await supabaseAdmin
+    const { data: project, error: projectError } = await supabase
       .from('projects')
       .insert({
         user_id: userId,
