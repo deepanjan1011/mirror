@@ -1,9 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { extractUserFromHeaders } from '@/lib/auth-adapter';
+
+// Helper to get or create user (reused logic for consistency)
+async function getOrCreateUser(supabase: any, headers: any) {
+  const userEmail = headers.email || `user_${headers.id}@tunnel.local`;
+
+  let { data: user, error: userError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', userEmail)
+    .single();
+
+  if (userError && userError.code === 'PGRST116') {
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert({
+        id: headers.id, // Explicitly match Auth ID if available
+        email: userEmail,
+        name: headers.email?.split('@')[0] || `User ${headers.id}`,
+        auth0_id: headers.id
+      })
+      .select()
+      .single();
+
+    if (createError) throw createError;
+    return newUser;
+  } else if (userError) {
+    throw userError;
+  }
+  return user;
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
     const { email, id } = await extractUserFromHeaders(request);
@@ -19,7 +50,7 @@ export async function GET(request: NextRequest) {
     const userId = id;
 
     // Get sessions for this project and user
-    const { data: sessions, error: sessionsError } = await supabaseAdmin
+    const { data: sessions, error: sessionsError } = await supabase
       .from('analysis_sessions')
       .select('*')
       .eq('project_id', projectId)
@@ -56,9 +87,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { projectId, sessionName, prompt, analysisState, uiState } = await request.json();
-    const userEmail = request.headers.get('x-user-email');
-    const userId = request.headers.get('x-user-id');
+    const supabase = await createClient();
+    const body = await request.json();
+    const { projectId, sessionName, prompt, analysisState, uiState } = body;
+    const { email, id } = await extractUserFromHeaders(request);
 
     if (!projectId || !sessionName || !prompt) {
       return NextResponse.json({
@@ -66,36 +98,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!userEmail && !userId) {
+    if (!email || !id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Find or create user
-    let { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', userEmail || `user_${userId}@tunnel.local`)
-      .single();
-
-    if (userError && userError.code === 'PGRST116') {
-      const { data: newUser, error: createError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          email: userEmail || `user_${userId}@tunnel.local`,
-          name: userEmail?.split('@')[0] || `User ${userId}`
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-      }
-      user = newUser;
+    // Ensure user exists in public.users table (Sync Auth -> Public)
+    try {
+      await getOrCreateUser(supabase, { email, id });
+    } catch (e) {
+      console.error('Error syncing user:', e);
+      // Continue anyway?
     }
 
+    const userId = id;
+
     // Create session
-    const { data: session, error: sessionError } = await supabaseAdmin
+    const { data: session, error: sessionError } = await supabase
       .from('analysis_sessions')
       .insert({
         project_id: projectId,
@@ -113,7 +131,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
     }
 
-    console.log('✅ Created session for user:', userEmail, 'Session:', session.session_name);
+    console.log('✅ Created session for user:', email, 'Session:', session.session_name);
 
     // Format to match old API
     const formattedSession = {
