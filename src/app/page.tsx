@@ -3,17 +3,17 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
-import { TextAnimate } from "@/components/magicui/text-animate";
+import { TextAnimate } from "@/components/ui/text-animate";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BorderBeam } from "@/components/magicui/border-beam";
-import { AnimatedBeam } from "@/components/magicui/animated-beam";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { AnimatedBeam } from "@/components/ui/animated-beam";
 
 import {
   Announcement,
   AnnouncementTag,
   AnnouncementTitle,
-} from "@/components/ui/kibo-ui/announcement";
+} from "@/components/ui/announcement";
 import { ArrowUpRightIcon, Globe, Megaphone, FileText } from "lucide-react";
 
 // Square component for animated beam
@@ -435,7 +435,7 @@ export default function Landing() {
 
         {/* ASCII Art Section with Footer overlay */}
         <section className="relative z-0 w-full bg-black overflow-hidden -mt-40" style={{ height: "750px" }}>
-          <div 
+          <div
             className="w-full h-full"
             style={{
               backgroundImage: "url('/ascii2.png')",
@@ -446,7 +446,7 @@ export default function Landing() {
               mixBlendMode: "lighten"
             }}
           />
-          
+
           {/* Footer overlaying ASCII art at bottom */}
           <footer className="absolute bottom-0 left-0 right-0 z-20 bg-black/90 backdrop-blur-sm border-t border-white/10 py-8">
             <div className="max-w-6xl mx-auto px-8">
