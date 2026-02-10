@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X, Home, Info, FolderOpen, Lightbulb } from "lucide-react";
+import { LogOut, Menu, X, Home, Info, FolderOpen, Lightbulb, Settings } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +33,7 @@ export function Navbar() {
         { name: "Projects", href: "/projects", icon: FolderOpen },
         // "Idea" links to projects for now, as that's where ideas start
         { name: "Idea", href: "/projects", icon: Lightbulb },
+        { name: "Settings", href: "/settings", icon: Settings },
     ];
 
     return (
