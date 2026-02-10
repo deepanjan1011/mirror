@@ -77,13 +77,13 @@ export async function generateText(prompt: string, options?: {
 }) {
   try {
     const text = await withRetry(async () => {
-      const response = await cohere.generate({
-        prompt,
-        model: options?.model || 'command',
+      const response = await cohere.chat({
+        message: prompt,
+        model: options?.model || 'command-r-plus-08-2024',
         maxTokens: options?.maxTokens || 1000,
         temperature: options?.temperature || 0.7,
       });
-      return response.generations?.[0]?.text || '';
+      return response.text || '';
     });
 
     return text;
