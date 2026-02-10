@@ -2017,7 +2017,7 @@ Remember: You've already formed your opinion. You're here to discuss it, not to 
 ${transcript}
 
 Give me specific action items to address the feedback mentioned in the conversation.`,
-          max_tokens: 300
+          maxTokens: 300
         })
       });
 
@@ -2134,7 +2134,7 @@ Please provide an improved version of the idea that:
 5. Is clear and concise
 
 Return only the improved idea, no additional commentary.`,
-          max_tokens: 400
+          maxTokens: 400
         })
       });
 
@@ -2744,15 +2744,19 @@ Return only the improved idea, no additional commentary.`,
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-white/20">
-                      <button className="w-full px-3 py-2 border border-white/20 bg-black/60 hover:bg-white/5 text-xs font-mono text-white/80 transition-all">
-                        {'>'} INITIATE FOLLOW-UP PROTOCOL
+                      <button
+                        onClick={generateImprovedPrompt}
+                        disabled={isGeneratingImprovedPrompt || reactions.length === 0}
+                        className="w-full px-3 py-2 border border-white/20 bg-black/60 hover:bg-white/5 text-xs font-mono text-white/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isGeneratingImprovedPrompt ? 'ANALYZING...' : '>'} INITIATE FOLLOW-UP PROTOCOL
                       </button>
                     </div>
                   </div>
                 )}
 
                 {/* Mission Deliverables Block - Show when there are reactions OR feedback */}
-                {false && (
+                {reactions.length > 0 && (
                   <div className="border border-white/20 bg-black/40 p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
