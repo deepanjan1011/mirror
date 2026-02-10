@@ -186,8 +186,8 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
         style={{
           width: '100%',
           padding: '0.75rem 1rem',
-          background: isLoading || !urls.trim() 
-            ? 'linear-gradient(to right, #4b5563, #6b7280)' 
+          background: isLoading || !urls.trim()
+            ? 'linear-gradient(to right, #4b5563, #6b7280)'
             : 'linear-gradient(to right, #9333ea, #2563eb)',
           color: 'white',
           fontWeight: '600',
@@ -203,11 +203,11 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
       >
         {isLoading ? (
           <>
-            <div style={{ 
-              width: '1rem', 
-              height: '1rem', 
-              border: '2px solid rgba(255,255,255,0.3)', 
-              borderTop: '2px solid white', 
+            <div style={{
+              width: '1rem',
+              height: '1rem',
+              border: '2px solid rgba(255,255,255,0.3)',
+              borderTop: '2px solid white',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite'
             }} className="spinner"></div>
@@ -250,7 +250,7 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
           }}>
             📊 Scout Results ({results.length})
           </h3>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {results.map((result, index) => (
               <div key={index} style={{
@@ -289,7 +289,7 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
                     {result.status}
                   </span>
                 </div>
-                
+
                 <div style={{
                   fontSize: '0.75rem',
                   color: '#9ca3af',
@@ -300,7 +300,7 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
                 }}>
                   {result.url}
                 </div>
-                
+
                 <div style={{
                   fontSize: '0.75rem',
                   color: '#d1d5db',
@@ -312,7 +312,7 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
                 }}>
                   {result.preview}
                 </div>
-                
+
                 {result.id && result.status !== 'error' && (
                   <button
                     onClick={() => {
@@ -368,10 +368,10 @@ export function ScoutDrawer({ isOpen, onClose }: ScoutDrawerProps) {
           color: '#fbbf24',
           lineHeight: '1.4'
         }}>
-          • Scrapes competitor pages using headless browser<br/>
-          • Extracts clean text content using Readability<br/>
-          • Takes screenshots for visual reference<br/>
-          • Caches results for 24 hours to avoid re-scraping<br/>
+          • Scrapes competitor pages using headless browser<br />
+          • Extracts clean text content using Readability<br />
+          • Takes screenshots for visual reference<br />
+          • Caches results for 24 hours to avoid re-scraping<br />
           • Only allows whitelisted domains for security
         </div>
       </div>
