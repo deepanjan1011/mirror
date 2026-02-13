@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { extractUserFromHeaders } from '@/lib/auth-adapter';
 
 export async function GET(
@@ -7,84 +7,77 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const headers = await extractUserFromHeaders(request);
+    const supabase = await createClient();
+    const { email, id: userId } = await extractUserFromHeaders(request);
 
-    console.log('🔍 [PROJECT-DETAIL] Headers:', headers);
-    console.log('📋 [PROJECT-DETAIL] Fetching project ID:', id);
-
-    if (!headers.email && !headers.id) {
+    if (!email || !userId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const userEmail = headers.email || `user_${headers.id}@tunnel.local`;
-    console.log('👤 [PROJECT-DETAIL] Looking for user with email:', userEmail);
+    const { id: projectId } = await params;
 
-    // Find user in Supabase
-    let { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', userEmail)
-      .single();
-
-    console.log('👤 [PROJECT-DETAIL] User lookup result:', { user: user?.email, error: userError?.code });
-
-    if (userError && userError.code === 'PGRST116') {
-      // Create user if doesn't exist
-      const { data: newUser, error: createError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          email: userEmail || `user_${headers.id}@tunnel.local`,
-          name: userEmail?.split('@')[0] || `User ${headers.id}`
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-      }
-      user = newUser;
-    } else if (userError) {
-      console.error('💥 [PROJECT-DETAIL] Error finding user:', userError);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    console.log('👤 [PROJECT-DETAIL] Final user for project fetch:', user?.email, 'ID:', user?.id);
-
-    if (!user || !user.id) {
-      console.error('💥 [PROJECT-DETAIL] User is null or missing ID');
-      return NextResponse.json({ error: 'Failed to identify user' }, { status: 500 });
-    }
-
-    // Get project
-    const { data: project, error: projectError } = await supabaseAdmin
+    // Fetch the project
+    const { data: project, error: fetchError } = await supabase
       .from('projects')
       .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('id', projectId)
+      .eq('user_id', userId)
       .single();
 
-    if (projectError) {
-      console.error('Error fetching project:', projectError);
+    if (fetchError || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Format to match old API
-    const formattedProject = {
-      _id: project.id,
-      name: project.name,
-      description: project.description,
-      createdAt: project.created_at,
-      updatedAt: project.updated_at
-    };
-
-    return NextResponse.json({
-      project: formattedProject
-    });
+    return NextResponse.json({ project });
 
   } catch (error) {
-    console.error('Error in project detail API:', error);
+    console.error('Error in get project API:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const { email, id: userId } = await extractUserFromHeaders(request);
+
+    if (!email || !userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { id: projectId } = await params;
+
+    // First, verify the project belongs to the user
+    const { data: project, error: fetchError } = await supabase
+      .from('projects')
+      .select('id, user_id')
+      .eq('id', projectId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !project) {
+      return NextResponse.json({ error: 'Project not found or unauthorized' }, { status: 404 });
+    }
+
+    // Delete the project (cascading deletes will handle related sessions)
+    const { error: deleteError } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      console.error('Error deleting project:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Project deleted successfully' });
+
+  } catch (error) {
+    console.error('Error in delete project API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

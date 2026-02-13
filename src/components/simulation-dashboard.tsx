@@ -495,55 +495,13 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
     }
   };
 
-  // Convert all Auth0 users to globe dots (initially greyed out) - only run on initial load
-  useEffect(() => {
-    // Only set initial dots if we don't have any dots yet and we're not in niche selection mode
-    if (allUsers.length > 0 && globeDots.length === 0 && nichePersonaIds.length === 0) {
-      console.log('🔍 [DEBUG] Initial globe dots setup for', allUsers.length, 'users');
+  // REMOVED: Automatic globe initialization
+  // Globe now starts empty - dots only appear when user clicks "Focus Group" after typing their idea
+  // This prevents showing personas before the user has even entered their idea
 
-      // Show all loaded users (up to 700) as grey dots initially
-      const dots = allUsers.map(persona => {
-        // Only show @fake.com users
-        const email = persona.email || '';
-        if (!email.endsWith('@fake.com')) {
-          return null;
-        }
-
-        // Handle both Auth0 user structure (with user_metadata) and direct persona structure
-        const personaData = persona.user_metadata || persona;
-
-        if (!personaData.personaId || !personaData.location?.coordinates) {
-          console.warn('⚠️ [DEBUG] Invalid persona data:', persona);
-          return null;
-        }
-
-        // Handle both possible coordinate structures
-        let lat: number, lon: number;
-
-        if (Array.isArray(personaData.location.coordinates.coordinates)) {
-          // GeoJSON format: { type: string; coordinates: [longitude, latitude] }
-          lon = personaData.location.coordinates.coordinates[0];
-          lat = personaData.location.coordinates.coordinates[1];
-        } else {
-          // Object format: { latitude: number; longitude: number }
-          lat = (personaData.location.coordinates as any).latitude;
-          lon = (personaData.location.coordinates as any).longitude;
-        }
-
-        return {
-          id: personaData.personaId,
-          lat: lat,
-          lon: lon,
-          color: '#bbbbbb', // Light grey for all users initially (visible on dark globe)
-          size: 4,
-          persona: persona
-        };
-      }).filter(Boolean); // Remove null entries
-
-      setGlobeDots(dots);
-      console.log(`🌍 [GLOBE] Displaying ${dots.length} @fake.com users as grey dots on globe`);
-    }
-  }, [allUsers.length, nichePersonaIds.length]); // Only depend on lengths to avoid unnecessary re-runs
+  // The globe dots are now populated by:
+  // 1. handleFocusGroup() - which calls loadNichePersonas() and shows grey dots for niche personas
+  // 2. handleAnalyze() - which generates reactions and updates dot colors
 
   // Update dots colors based on reactions only (not selection, as that's handled by updateGlobeDotsForNiche)
   useEffect(() => {

@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, FolderOpen, Calendar, Activity } from "lucide-react";
+import { Plus, FolderOpen, Calendar, Activity, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
@@ -42,6 +42,9 @@ export default function ProjectsPage() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -131,6 +134,41 @@ export default function ProjectsPage() {
 
   const openProject = (projectId: string) => {
     router.push(`/dashboard?project=${projectId}`);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation(); // Prevent card click
+    setProjectToDelete(project);
+    setShowDeleteDialog(true);
+  };
+
+  const deleteProject = async () => {
+    if (!projectToDelete) return;
+
+    setDeletingProjectId(projectToDelete._id);
+    try {
+      const response = await fetch(`/api/projects/${projectToDelete._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Remove project from state
+        setProjects(projects.filter(p => p._id !== projectToDelete._id));
+        setShowDeleteDialog(false);
+        setProjectToDelete(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Error deleting project');
+    } finally {
+      setDeletingProjectId(null);
+    }
   };
 
 
@@ -231,6 +269,40 @@ export default function ProjectsPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <DialogContent className="bg-black border-white/20 text-white">
+              <DialogHeader>
+                <DialogTitle className="font-mono">
+                  Delete Project
+                </DialogTitle>
+                <DialogDescription className="font-mono text-white/60">
+                  Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone and will delete all associated simulations.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={deleteProject}
+                  disabled={deletingProjectId !== null}
+                  className="flex-1 font-mono bg-red-600 text-white hover:bg-red-700"
+                >
+                  {deletingProjectId ? "Deleting..." : "Delete Project"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDeleteDialog(false);
+                    setProjectToDelete(null);
+                  }}
+                  disabled={deletingProjectId !== null}
+                  className="font-mono border-white/20 text-white hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Projects Grid */}
@@ -285,9 +357,19 @@ export default function ProjectsPage() {
                           </CardDescription>
                         )}
                       </div>
-                      <div className="text-xs font-mono text-white/40">
-                        <Calendar className="w-3 h-3 inline mr-1" />
-                        {formatDate(project.createdAt)}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs font-mono text-white/40">
+                          <Calendar className="w-3 h-3 inline mr-1" />
+                          {formatDate(project.createdAt)}
+                        </div>
+                        <button
+                          onClick={(e) => handleDeleteClick(e, project)}
+                          disabled={deletingProjectId === project._id}
+                          className="text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                          title="Delete project"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   </CardHeader>
