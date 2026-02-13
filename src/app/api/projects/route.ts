@@ -43,13 +43,12 @@ export async function GET(request: NextRequest) {
 
     const userId = id;
 
-    // Get user's projects with simulation counts
-    // Note: Schema change: 'analysis_sessions' -> 'simulations'
+    // Get user's projects with analysis session counts
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select(`
         *,
-        simulations(count)
+        analysis_sessions(count)
       `)
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
@@ -66,8 +65,8 @@ export async function GET(request: NextRequest) {
       description: project.description,
       createdAt: project.created_at,
       updatedAt: project.updated_at,
-      // Map count from new relation
-      simulationCount: project.simulations?.[0]?.count || 0
+      // Map count from analysis_sessions relation
+      simulationCount: project.analysis_sessions?.[0]?.count || 0
     })) || [];
 
     return NextResponse.json({
