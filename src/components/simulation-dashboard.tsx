@@ -534,7 +534,7 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
           id: personaData.personaId,
           lat: lat,
           lon: lon,
-          color: '#666666', // Grey for all users initially
+          color: '#bbbbbb', // Light grey for all users initially (visible on dark globe)
           size: 4,
           persona: persona
         };
@@ -803,7 +803,7 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         id: personaData.personaId,
         lat: lat,
         lon: lon,
-        color: isInNiche ? '#ffffff' : '#444444', // White for niche, grey for others
+        color: isInNiche ? '#ffffff' : '#bbbbbb', // White for niche, light grey for others to be visible
         size: isInNiche ? 8 : 4, // Larger for niche personas
         persona: persona // Use full persona object, not just personaData
       };
@@ -1052,11 +1052,16 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
     }
   };
 
-  const initiatePersonaCall = (persona: Persona, reaction: Reaction) => {
+  const initiatePersonaCall = (persona: Persona, reaction?: Reaction) => {
     // Store persona context in session storage for the voice agent to access
     const personaContext = {
       persona: persona.user_metadata || persona,
-      reaction: reaction,
+      reaction: reaction || {
+        attention: 'partial',
+        reason: 'Live interaction started by user',
+        sentiment: 0.5,
+        personaId: (persona.user_metadata || persona).personaId
+      },
       projectIdea: postContent,
       simulationType: selectedType,
       nicheInfo: nicheInfo
@@ -2450,7 +2455,7 @@ Return only the improved idea, no additional commentary.`,
                       <div className="flex justify-between items-center">
                         <span className="text-white/70 text-xs font-mono">Personas Processed</span>
                         <span className="text-white font-mono text-sm">
-                          {processedPersonas} / {personas.length}
+                          {processedPersonas} / {selectedUsers.length > 0 ? selectedUsers.length : personas.length}
                         </span>
                       </div>
 
@@ -2458,7 +2463,7 @@ Return only the improved idea, no additional commentary.`,
                         {Array.from({ length: 25 }, (_, i) => (
                           <div
                             key={i}
-                            className={`w-1 h-2 transition-all duration-500 ${i < Math.floor((processedPersonas / personas.length) * 25) ? 'bg-white' : 'bg-white/20'
+                            className={`w-1 h-2 transition-all duration-500 ${i < Math.floor((processedPersonas / (selectedUsers.length > 0 ? selectedUsers.length : personas.length)) * 25) ? 'bg-white' : 'bg-white/20'
                               }`}
                             style={{
                               animationDelay: `${i * 20}ms`
@@ -2468,8 +2473,8 @@ Return only the improved idea, no additional commentary.`,
                       </div>
 
                       <div className="flex justify-between items-center text-xs font-mono text-white/60">
-                        <span>Progress: {Math.round((processedPersonas / personas.length) * 100)}%</span>
-                        <span>ETA: {Math.max(0, Math.ceil((personas.length - processedPersonas) / 10))}s</span>
+                        <span>Progress: {Math.round((processedPersonas / (selectedUsers.length > 0 ? selectedUsers.length : personas.length)) * 100)}%</span>
+                        <span>ETA: {Math.max(0, Math.ceil(((selectedUsers.length > 0 ? selectedUsers.length : personas.length) - processedPersonas) / 10))}s</span>
                       </div>
                     </div>
                   </motion.div>
@@ -3466,7 +3471,7 @@ Return only the improved idea, no additional commentary.`,
                 )}
 
                 <div className="flex gap-2 mt-4">
-                  {selectedPersona && reactions.find(r => r.personaId === (selectedPersona.user_metadata || selectedPersona).personaId) && !isInCall && (
+                  {selectedPersona && !isInCall && (
                     <Button
                       onClick={startCall}
                       disabled={isConnecting}
@@ -3486,13 +3491,21 @@ Return only the improved idea, no additional commentary.`,
                     </Button>
                   )}
 
-                  {/* Add to Feedback List Button - only show for negative/neutral reactions */}
+                  {/* Add to Feedback List Button - only show for negative/neutral reactions or no reaction */}
                   {(() => {
                     if (!selectedPersona) return null;
                     const reaction = reactions.find(r => r.personaId === (selectedPersona.user_metadata || selectedPersona).personaId);
-                    return reaction && (reaction.attention === 'ignore' || reaction.attention === 'partial') && (
+                    // Show if no reaction OR if reaction is not full attention
+                    const shouldShow = !reaction || (reaction.attention === 'ignore' || reaction.attention === 'partial');
+
+                    return shouldShow && (
                       <Button
-                        onClick={() => selectedPersona && addToFeedbackList(selectedPersona, reaction)}
+                        onClick={() => selectedPersona && addToFeedbackList(selectedPersona, reaction || {
+                          attention: 'partial',
+                          reason: 'Manual feedback addition',
+                          sentiment: 0.5,
+                          personaId: (selectedPersona.user_metadata || selectedPersona).personaId
+                        })}
                         className="flex-1 bg-orange-600/20 text-orange-400 hover:bg-orange-600/30 border border-orange-600/40"
                       >
                         <Check className="h-4 w-4 mr-2" />

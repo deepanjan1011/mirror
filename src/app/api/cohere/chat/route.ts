@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Wrapped 'message' in an array of objects to match the expected signature
     const response = await chatCompletion([
       { role: 'user', content: message }
     ], {

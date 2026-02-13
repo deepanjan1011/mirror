@@ -408,7 +408,9 @@ export function ThreeJSGlobeWithDots({
       const htmlDot = document.createElement('div');
       htmlDot.className = 'absolute pointer-events-auto cursor-pointer';
       // Only animate if it's NOT the default grey/white (meaning it has a reaction)
-      const isActive = dot.color !== '#666666' && dot.color !== '#ffffff';
+      // Treat #666666, #444444, #888888, and #bbbbbb as inactive grey colors
+      const isInactive = ['#666666', '#444444', '#888888', '#bbbbbb', '#ffffff'].includes(dot.color);
+      const isActive = !isInactive;
 
       htmlDot.innerHTML = `
         <div class="relative flex h-3 w-3">
