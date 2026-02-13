@@ -1,121 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chromium } from 'playwright';
-import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
-import * as cheerio from 'cheerio';
-import { getUserDb } from '@/lib/db';
-import { ScoutPageDoc } from '@/lib/schema';
-import { chunkTextByLength, embedTextCohereV4 } from '@/lib/embed';
-import { ObjectId } from 'mongodb';
-import { requireAuth } from '@/lib/auth';
+import { extractUserFromHeaders } from '@/lib/auth-adapter';
 
-const ALLOWED_HOSTS = process.env.SCOUT_ALLOWED_HOSTS?.split(',').map(h => h.trim()) || [
-  'partiful.com',
-  'doodle.com',
-  'when2meet.com',
-  'eventbrite.com',
-  'meetup.com',
-  'facebook.com',
-  'luma.com'
-];
-
-const TIMEOUT_MS = 30000;
-const RATE_LIMIT_DELAY = 1000; // 1 second between requests
-
-function isAllowedUrl(url: string): boolean {
-  try {
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname.toLowerCase();
-    return ALLOWED_HOSTS.some(allowedHost => 
-      domain === allowedHost || domain.endsWith('.' + allowedHost)
-    );
-  } catch {
-    return false;
-  }
-}
-
-async function scrapePage(url: string): Promise<Partial<ScoutPageDoc>> {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-
-  // Block heavy resources to speed up and reduce timeouts
-  await page.route('**/*', (route) => {
-    const req = route.request();
-    const type = req.resourceType();
-    if (['image', 'media', 'font'].includes(type)) return route.abort();
-    return route.continue();
-  });
-  
-  try {
-    // Set viewport and user agent
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.setExtraHTTPHeaders({
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    });
-
-    // Navigate with timeout (faster and more reliable on dynamic sites)
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: TIMEOUT_MS,
-    });
-    // Best-effort settle
-    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-
-    // Get HTML content
-    const html = await page.content();
-    
-    // Take screenshot (optional)
-    let screenshotBase64: string | undefined;
-    try {
-      const screenshot = await page.screenshot({ type: 'png', fullPage: false });
-      screenshotBase64 = screenshot.toString('base64');
-    } catch {}
-
-    await browser.close();
-
-    // Parse with Cheerio for metadata
-    const $ = cheerio.load(html);
-    const title = $('title').text().trim() || $('h1').first().text().trim() || 'Untitled';
-    const metaDescription = $('meta[name="description"]').attr('content') || 
-                           $('meta[property="og:description"]').attr('content') || '';
-
-    // Clean HTML (remove scripts, styles, etc.)
-    $('script, style, noscript, iframe').remove();
-    const cleanedHtml = $.html();
-
-    // Extract main content using Readability
-    const dom = new JSDOM(cleanedHtml, { url });
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-    
-    const text = article?.textContent || $('body').text().replace(/\s+/g, ' ').trim();
-    const domain = new URL(url).hostname;
-
-    return {
-      url,
-      title,
-      html: cleanedHtml,
-      text,
-      screenshot: screenshotBase64,
-      fetchedAt: new Date(),
-      domain,
-      metaDescription
-    };
-
-  } catch (error) {
-    await browser.close();
-    throw error;
-  }
+interface CrawlResult {
+  id: string | null;
+  url: string;
+  title: string;
+  status: 'scraped' | 'error';
+  preview: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
-    const authResult = await requireAuth(request);
-    if ('error' in authResult) {
-      return authResult.error;
+    // Authenticate with Supabase
+    const { email, id } = await extractUserFromHeaders(request);
+    if (!email || !id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    const { user } = authResult;
 
     const body = await request.json();
     const { urls } = body;
@@ -135,110 +35,99 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate URLs
-    const validUrls = urls.filter(url => {
+    const validUrls = urls.filter((url: unknown) => {
       if (typeof url !== 'string') return false;
-      if (!isAllowedUrl(url)) return false;
-      return true;
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
     });
 
     if (validUrls.length === 0) {
       return NextResponse.json(
-        { error: 'No valid URLs provided. Allowed domains: ' + ALLOWED_HOSTS.join(', ') },
+        { error: 'No valid URLs provided' },
         { status: 400 }
       );
     }
 
-    const db = await getUserDb(user.auth0Id);
-    const collection = db.collection<ScoutPageDoc>('scout_pages');
+    const tavilyKey = process.env.TAVILY_API_KEY;
+    const results: CrawlResult[] = [];
 
-    const results = [];
-    
     for (const url of validUrls) {
       try {
-        // Check if URL already exists and is recent (within 24 hours)
-        const existing = await collection.findOne({ 
-          url,
-          fetchedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        if (tavilyKey) {
+          // Use Tavily extract API to get page content
+          const tavilyResponse = await fetch('https://api.tavily.com/extract', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tavilyKey}`,
+            },
+            body: JSON.stringify({ urls: [url] }),
+          });
+
+          if (tavilyResponse.ok) {
+            const data = await tavilyResponse.json();
+            const extracted = data.results?.[0];
+
+            if (extracted) {
+              results.push({
+                id: `crawl-${Date.now()}`,
+                url,
+                title: extracted.title || new URL(url).hostname,
+                status: 'scraped',
+                preview: (extracted.raw_content || extracted.content || 'No content extracted').substring(0, 500),
+              });
+              continue;
+            }
+          }
+        }
+
+        // Fallback: simple fetch with metadata extraction
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ScoutBot/1.0)',
+          },
+          signal: AbortSignal.timeout(10000),
         });
 
-        if (existing) {
-          results.push({
-            id: existing._id?.toString(),
-            url,
-            title: existing.title,
-            status: 'cached',
-            preview: existing.text.substring(0, 400) + '...'
-          });
-          continue;
-        }
+        const html = await response.text();
 
-        // Rate limiting
-        if (results.length > 0) {
-          await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
-        }
+        // Extract title
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        const title = titleMatch?.[1]?.trim() || new URL(url).hostname;
 
-        // Scrape the page
-        const pageData = await scrapePage(url);
-        
-        // Save to database
-        const result = await collection.insertOne({
-          ...pageData,
-          fetchedAt: new Date()
-        } as ScoutPageDoc);
+        // Extract meta description
+        const metaMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+          || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
+        const description = metaMatch?.[1]?.trim() || '';
 
-        // Create vector chunks and store embeddings
-        try {
-          const vectors = db.collection('scout_vectors');
-          const chunks = chunkTextByLength(pageData.text || '');
-          for (const chunk of chunks) {
-            // Embed each chunk (document input)
-            const embedding = await embedTextCohereV4(chunk.text, 'search_document');
-            await vectors.updateOne(
-              { pageId: result.insertedId, chunkId: chunk.id },
-              {
-                $set: {
-                  pageId: result.insertedId,
-                  chunkId: chunk.id,
-                  text: chunk.text,
-                  embedding,
-                  url,
-                },
-              },
-              { upsert: true }
-            );
-          }
-        } catch (e) {
-          console.error('Embedding error for URL', url, e);
-        }
+        // Extract visible text (rough)
+        const textContent = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
 
         results.push({
-          id: result.insertedId.toString(),
+          id: `crawl-${Date.now()}`,
           url,
-          title: pageData.title,
+          title,
           status: 'scraped',
-          preview: pageData.text?.substring(0, 400) + '...' || 'No content extracted'
+          preview: (description || textContent).substring(0, 500),
         });
 
       } catch (error) {
-        console.error(`Error scraping ${url}:`, error);
-        
-        // Save error to database
-        await collection.insertOne({
-          url,
-          title: 'Error',
-          html: '',
-          text: '',
-          fetchedAt: new Date(),
-          domain: new URL(url).hostname,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        } as ScoutPageDoc);
-
+        console.error(`Error crawling ${url}:`, error);
         results.push({
           id: null,
           url,
           title: 'Error',
           status: 'error',
-          preview: error instanceof Error ? error.message : 'Failed to scrape'
+          preview: error instanceof Error ? error.message : 'Failed to scrape this URL',
         });
       }
     }
@@ -246,7 +135,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       results,
-      total: results.length
+      total: results.length,
     });
 
   } catch (error) {

@@ -85,6 +85,16 @@ CREATE TABLE IF NOT EXISTS analysis_sessions (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Ideas table (for Idea Assistant feature)
+CREATE TABLE IF NOT EXISTS ideas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  idea_text TEXT NOT NULL,
+  artifacts JSONB, -- optional file/url references
+  result JSONB NOT NULL, -- AI-generated analysis (IdeationResponse)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Persona reactions table (Legacy? Or for analysis_sessions?)
 -- Keeping this for now, but simulation_reactions is preferred for new architecture
 CREATE TABLE IF NOT EXISTS persona_reactions (

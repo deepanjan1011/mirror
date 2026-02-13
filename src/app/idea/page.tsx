@@ -17,6 +17,7 @@ import { nodeTypes, type NodeData } from '@/components/flow/IdeaNodes';
 import { EvidenceDrawer } from '@/components/flow/EvidenceDrawer';
 import { ScoutDrawer, type ScoutResult } from '@/components/flow/ScoutDrawer';
 import { getLayoutedElements } from '@/lib/flow/layout';
+import { createClient } from "@/lib/supabase/client";
 
 interface IdeaResult {
   summary: string;
@@ -49,10 +50,12 @@ type ChatMessage =
 
 const IdeaPage = () => {
   const router = useRouter();
+  const supabase = createClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   // Map tab state
   const [activeTab, setActiveTab] = useState<'chat' | 'map'>('chat');
@@ -61,6 +64,32 @@ const IdeaPage = () => {
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isScoutDrawerOpen, setIsScoutDrawerOpen] = useState(false);
+
+  const createProjectFromIdea = async (ideaText: string) => {
+    setIsCreatingProject(true);
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: ideaText.length > 60 ? ideaText.substring(0, 57) + '...' : ideaText,
+          description: ideaText
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to create project');
+      }
+
+      const data = await response.json();
+      // Redirect to dashboard with the idea pre-filled
+      router.push(`/dashboard?project=${data.project._id}&idea=${encodeURIComponent(ideaText)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create project');
+      setIsCreatingProject(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,19 +197,55 @@ const IdeaPage = () => {
 
   const layoutFromLatest = useCallback(() => {
     if (!latestResult) return;
-    const { nodes: newNodes, edges: newEdges } = generateNodesAndEdges(latestResult);
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, newEdges, { direction: 'TB', nodeWidth: 320, nodeHeight: 200, rankSep: 120, nodeSep: 100 });
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+
+    // Use functional updates to get the most recent state of both nodes and edges
+    // without causing dependency loops in the callback itself.
+    setNodes((currentNodes) => {
+      // Find current research nodes to preserve them
+      const researchNodes = currentNodes.filter(n => n.type === 'research');
+
+      setEdges((currentEdges) => {
+        const { nodes: baseNodes, edges: baseEdges } = generateNodesAndEdges(latestResult);
+
+        // Preserve research edges (those starting with 'scout-')
+        const researchEdges = currentEdges.filter(e => e.id.startsWith('scout-'));
+
+        const allNodes = [...baseNodes, ...researchNodes];
+        const allEdges = [...baseEdges, ...researchEdges];
+
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+          allNodes, allEdges,
+          { direction: 'TB', nodeWidth: 320, nodeHeight: 200, rankSep: 120, nodeSep: 100 }
+        );
+
+        // Update nodes in the next frame to avoid state update conflict
+        window.requestAnimationFrame(() => {
+          setNodes(layoutedNodes);
+        });
+
+        return layoutedEdges;
+      });
+
+      return currentNodes;
+    });
   }, [latestResult, generateNodesAndEdges, setNodes, setEdges]);
 
-  // ...
-
   const handleAttachToMap = (result: ScoutResult) => {
+    const nodeId = `research-${Date.now()}`;
+    const edgeId = `scout-${nodeId}`;
+
+    // Find the summary node position to place the new node relative to it
+    const summaryNode = nodes.find(n => n.id === 'summary');
+    const researchCount = nodes.filter(n => n.type === 'research').length;
+
+    // Position the research node above the summary, offset horizontally for each one
+    const baseX = summaryNode ? summaryNode.position.x - 200 : -200;
+    const baseY = summaryNode ? summaryNode.position.y - 250 : -250;
+
     const newNode: Node<NodeData> = {
-      id: `research-${Date.now()}`,
+      id: nodeId,
       type: 'research',
-      position: { x: 0, y: 0 },
+      position: { x: baseX + (researchCount * 350), y: baseY },
       data: {
         label: 'Competitor Research',
         type: 'research',
@@ -189,14 +254,25 @@ const IdeaPage = () => {
           url: result.url,
           preview: result.preview
         },
-        nodeId: `research-${Date.now()}`,
-        // @ts-ignore
+        nodeId,
         onClick: () => { }
       }
     };
 
+    // Create an edge connecting the research node to the summary
+    // Research (source) points TO Summary (target) from above
+    const newEdge: Edge = {
+      id: edgeId,
+      source: nodeId,
+      target: 'summary',
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: '#60a5fa', strokeWidth: 2, opacity: 0.6 },
+    };
+
     setNodes((nds) => [...nds, newNode]);
-    setIsScoutDrawerOpen(false);
+    setEdges((eds) => [...eds, newEdge]);
+    setIsScoutDrawerOpen(false); // Close drawer after attaching
   };
 
   React.useEffect(() => {
@@ -204,41 +280,9 @@ const IdeaPage = () => {
   }, [activeTab, layoutFromLatest]);
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-black relative overflow-hidden pt-20">
 
-      <nav className="relative z-10 flex items-center py-6 px-8 w-full max-w-7xl mx-auto bg-black">
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="ml-1 text-sm text-white font-mono">Tunnel™️</span>
-        </div>
-        <div className="hidden font-mono bg-white/5 md:flex gap-6 px-4 py-2 text-xs absolute left-1/2 text-white -translate-x-1/2">
-          <a href="/" className="px-3 py-2 hover:bg-white/10 transition">
-            Home
-          </a>
-          <a href="/digest" className="px-3 py-2 hover:bg-white/10 transition">
-            About
-          </a>
-          <a href="/waitlist" className="px-3 py-2 hover:bg-white/10 transition">
-            Pricing
-          </a>
-          <a href="/waitlist" className="px-3 py-2 hover:bg-white/10 transition">
-            Discovery ↗
-          </a>
-          <a href="/idea" className="px-3 py-2 hover:bg-white/10 transition bg-white/10">
-            Ideas
-          </a>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-          <button
-            onClick={() => router.push("/login")}
-            className="px-4 py-2 hover:bg-white/20 bg-white/5 text-xs text-white font-mono transition cursor-pointer"
-          >
-            Login ↗
-          </button>
-        </div>
-      </nav>
-
-      <div style={{ height: "1px", backgroundColor: 'white', opacity: 1 }} className="w-full mb-4"></div>
+      <div style={{ height: "1px", backgroundColor: 'white', opacity: 0.1 }} className="w-full mb-4"></div>
 
       <main className="relative z-10 max-w-5xl mx-auto px-8 py-10">
         <div className="border border-white/10 bg-white/5 p-4 md:p-6">
@@ -401,13 +445,19 @@ const IdeaPage = () => {
                       )}
 
                       {m.savedId && (
-                        <div className="pt-2">
-                          <a
-                            href={`/tunnel/phase-2?ideaId=${m.savedId}`}
-                            className="inline-flex items-center px-3 py-1.5 bg-white text-black text-xs"
+                        <div className="pt-2 flex gap-2">
+                          <button
+                            onClick={() => {
+                              const userMsg = messages.find(msg => msg.role === 'user');
+                              if (userMsg && userMsg.role === 'user') {
+                                createProjectFromIdea(userMsg.text);
+                              }
+                            }}
+                            disabled={isCreatingProject}
+                            className="inline-flex items-center px-3 py-1.5 bg-white text-black text-xs font-mono hover:bg-white/90 disabled:opacity-50"
                           >
-                            Proceed to Phase 2 →
-                          </a>
+                            {isCreatingProject ? 'Creating...' : 'Create Project & Analyze →'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -469,6 +519,7 @@ const IdeaPage = () => {
         isOpen={isScoutDrawerOpen}
         onClose={() => setIsScoutDrawerOpen(false)}
         onAttach={handleAttachToMap}
+        ideaText={messages.find(m => m.role === 'user')?.text || ''}
       />
     </div>
   );

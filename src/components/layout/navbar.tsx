@@ -31,8 +31,7 @@ export function Navbar() {
         { name: "Home", href: "/", icon: Home },
         { name: "About", href: "/about", icon: Info },
         { name: "Projects", href: "/projects", icon: FolderOpen },
-        // "Idea" links to projects for now, as that's where ideas start
-        { name: "Idea", href: "/projects", icon: Lightbulb },
+        { name: "Idea", href: "/idea", icon: Lightbulb },
         { name: "Settings", href: "/settings", icon: Settings },
     ];
 
@@ -57,7 +56,7 @@ export function Navbar() {
                         <div className="flex items-center gap-6">
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
-                                const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+                                const isActive = pathname === link.href || (link.href !== "/" && link.href !== "/projects" && pathname.startsWith(link.href));
 
                                 return (
                                     <Link

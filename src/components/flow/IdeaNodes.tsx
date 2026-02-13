@@ -65,6 +65,7 @@ export function SummaryNode({ data, selected }: NodeProps<NodeData>) {
 
   return (
     <div style={style} onClick={data.onClick}>
+      <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         📋 Summary
@@ -447,12 +448,13 @@ export function ResearchNode({ data, selected }: NodeProps<NodeData>) {
 
   // Content for research node is expected to be { title, url, preview }
   const content = typeof data.content === 'object' ? data.content : { title: 'Research', url: '', preview: data.content };
-  // @ts-ignore
+  // @ts-expect-error - content type is dynamic based on node type
   const { title, url, preview } = content;
 
   return (
     <div style={style} onClick={data.onClick}>
       <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <span style={{ fontSize: '16px' }}>🔍</span>
         <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserDb } from '@/lib/db';
-import { IdeationResponse, type IdeaDoc } from '@/lib/schema';
+import { createClient } from '@/lib/supabase/server';
+import { extractUserFromHeaders } from '@/lib/auth-adapter';
+import { IdeationResponse } from '@/lib/schema';
 import { SYSTEM_PROMPT, buildUserPrompt } from '@/lib/prompts';
-import { requireAuth } from '@/lib/auth';
 import { chatCompletion } from '@/lib/cohere';
 
 interface IdeateRequest {
@@ -16,12 +16,15 @@ interface IdeateRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
-    const authResult = await requireAuth(request);
-    if ('error' in authResult) {
-      return authResult.error;
+    // Authenticate user via Supabase
+    const { email, id } = await extractUserFromHeaders(request);
+
+    if (!email || !id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
-    const { user } = authResult;
 
     const body: IdeateRequest = await request.json();
 
@@ -81,22 +84,31 @@ export async function POST(request: NextRequest) {
 
     const result = validationResult.data;
 
-    // Save to user-specific MongoDB database
-    const db = await getUserDb(user.auth0Id);
-    const collection = db.collection<IdeaDoc>('ideas');
+    // Save to Supabase ideas table
+    const supabase = await createClient();
+    const { data: idea, error: insertError } = await supabase
+      .from('ideas')
+      .insert({
+        user_id: id,
+        idea_text: body.idea.trim(),
+        artifacts: body.artifacts || null,
+        result: result,
+      })
+      .select('id')
+      .single();
 
-    const document: IdeaDoc = {
-      idea: body.idea.trim(),
-      artifacts: body.artifacts,
-      stage: 'advisor',
-      result,
-      createdAt: new Date()
-    };
-
-    const insertResult = await collection.insertOne(document);
+    if (insertError) {
+      console.error('Error saving idea to Supabase:', insertError);
+      // Still return the result even if save fails
+      return NextResponse.json({
+        id: null,
+        result,
+        warning: 'Idea generated but failed to save'
+      });
+    }
 
     return NextResponse.json({
-      id: insertResult.insertedId.toString(),
+      id: idea.id,
       result
     });
 
