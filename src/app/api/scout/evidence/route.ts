@@ -13,6 +13,7 @@ interface EvidenceResponse {
     insights: {
         related_research: string;
         action_items: string;
+        supporting_evidence: string;
     };
 }
 
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
-        const { query, nodeLabel, nodeContent, productContext } = await request.json();
+        const { query, nodeLabel, nodeContent, productContext, evidence } = await request.json();
 
         if (!query || typeof query !== 'string') {
             return NextResponse.json({ error: 'Query is required' }, { status: 400 });
@@ -138,34 +139,41 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Tavily API key not configured' }, { status: 500 });
         }
 
-        // 1. Search Tavily (Hybrid Strategy)
+        let searchResults: EvidenceResult[] = [];
 
-        // A. Specific AI Query (Node-Aware)
-        const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '');
-        console.log('Specific Query:', specificQuery);
+        if (evidence && Array.isArray(evidence) && evidence.length > 0) {
+            console.log('Using provided evidence for insights:', evidence.length);
+            searchResults = evidence;
+        } else {
+            // 1. Search Tavily (Hybrid Strategy)
 
-        // B. Broad Context Query (Node-Aware)
-        const broadQuery = nodeLabel
-            ? `${nodeLabel} for ${productContext ? productContext.slice(0, 50) : query}`
-            : (productContext ? `${query} ${productContext.slice(0, 50)}` : query);
-        console.log('Broad Query:', broadQuery);
+            // A. Specific AI Query (Node-Aware)
+            const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '');
+            console.log('Specific Query:', specificQuery);
 
-        // Run searches in parallel (Fetch 5 from each to get ~10 diverse candidates)
-        // Note: tavilySearch expects maxResults as 3rd arg
-        const [specificResults, broadResults] = await Promise.all([
-            tavilySearch(tavilyKey, specificQuery, 5),
-            tavilySearch(tavilyKey, broadQuery, 5)
-        ]);
+            // B. Broad Context Query (Node-Aware)
+            const broadQuery = nodeLabel
+                ? `${nodeLabel} for ${productContext ? productContext.slice(0, 50) : query}`
+                : (productContext ? `${query} ${productContext.slice(0, 50)}` : query);
+            console.log('Broad Query:', broadQuery);
 
-        // Merge and Deduplicate by URL
-        const allResults = [...specificResults, ...broadResults];
-        const uniqueResults = Array.from(new Map(allResults.map(item => [item.url, item])).values());
+            // Run searches in parallel (Fetch 5 from each to get ~10 diverse candidates)
+            // Note: tavilySearch expects maxResults as 3rd arg
+            const [specificResults, broadResults] = await Promise.all([
+                tavilySearch(tavilyKey, specificQuery, 5),
+                tavilySearch(tavilyKey, broadQuery, 5)
+            ]);
 
-        console.log(`Merged ${allResults.length} results into ${uniqueResults.length} unique items.`);
+            // Merge and Deduplicate by URL
+            const allResults = [...specificResults, ...broadResults];
+            const uniqueResults = Array.from(new Map(allResults.map(item => [item.url, item])).values());
 
-        // Curate the top 5 results using LLM (Node-Aware)
-        const searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '');
-        console.log(`Curated down to ${searchResults.length} results`);
+            console.log(`Merged ${allResults.length} results into ${uniqueResults.length} unique items.`);
+
+            // Curate the top 5 results using LLM (Node-Aware)
+            searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '');
+            console.log(`Curated down to ${searchResults.length} results`);
+        }
 
         // 2. Generate Insights with Cohere
         const context = searchResults.map(r => r.snippet).join('\n\n');
@@ -177,20 +185,23 @@ User Question: "${query}"
 Context from Web Search:
 ${context}
 
-Based on the search results and the context, generate two EXTREMELY CONCISE sections.
+based on the search results and the context, generate three EXTREMELY CONCISE sections.
 NO sentences. NO filler. Just raw data and direct actions.
 Max 10 words per bullet.
 
-1. Related Research: 2 key facts/stats only.
-2. Action Items: 2 direct commands only.
+1. Supporting Evidence: 2 key quotes/facts that most strongly support the user's idea/query.
+2. Related Research: 2 key larger trends/context.
+3. Action Items: 2 direct commands.
 
 Return ONLY valid JSON in this format:
 {
+  "supporting_evidence": "Markdown string with bullets",
   "related_research": "Markdown string with bullets",
   "action_items": "Markdown string with bullets"
 }`;
 
         let insights = {
+            supporting_evidence: "No supporting evidence found.",
             related_research: "Analysis pending...",
             action_items: "No actionable steps identified."
         };
@@ -270,6 +281,7 @@ Return ONLY valid JSON in this format:
             console.error('Cohere insight generation failed:', e);
             // Fallback: Try a simpler parsing approach or just return error state
             insights = {
+                supporting_evidence: "Error parsing AI insights. Please try again.",
                 related_research: "Error parsing AI insights. Please try again.",
                 action_items: "Error parsing AI insights. Please try again."
             };

@@ -45,18 +45,19 @@ export async function withRetry<T>(
     } catch (error: any) {
       lastError = error;
 
-      // Check if retryable: Network error (IPv6), Rate limit (429), or Server error (5xx)
+      // Check if retryable: Network error (IPv6), Rate limit (429), Server error (5xx), or Timeout
       const isNetworkError = handleNetworkError(error);
       const isRateLimit = error.statusCode === 429 || error.status === 429;
       const isServerError = error.statusCode >= 500 || error.status >= 500;
+      const isTimeout = error.message === 'timeout' || error.code === 'ECONNABORTED';
 
-      if (!isNetworkError && !isRateLimit && !isServerError) {
+      if (!isNetworkError && !isRateLimit && !isServerError && !isTimeout) {
         throw error; // Not retryable (e.g. 400 Bad Request)
       }
 
       const delay = baseDelay * Math.pow(2, attempt);
       console.warn(`⚠️ [AI-RETRY] Attempt ${attempt + 1}/${maxRetries} failed. Retrying in ${delay}ms...`, {
-        reason: isNetworkError ? 'Network (IPv6)' : isRateLimit ? 'Rate Limit' : 'Server Error',
+        reason: isNetworkError ? 'Network (IPv6)' : isRateLimit ? 'Rate Limit' : isServerError ? 'Server Error' : 'Timeout',
         message: error.message
       });
 

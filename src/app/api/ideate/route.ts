@@ -60,10 +60,74 @@ export async function POST(request: NextRequest) {
       temperature: 0.3,
     });
 
+    // Robust JSON cleaning function
+    const cleanJson = (str: string) => {
+      let cleaned = str.trim();
+      console.log('Raw Cohere Response:', cleaned);
+
+      // 1. Remove markdown code blocks
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/```$/, '');
+      }
+
+      // 2. Remove any text before the first '{' and after the last '}'
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
+
+      // 3. Escape control characters (newlines, tabs, etc.) ONLY within string values
+      // This is a simplified state machine to detect if we are inside a string
+      let result = '';
+      let insideString = false;
+      let escape = false;
+
+      for (let i = 0; i < cleaned.length; i++) {
+        const char = cleaned[i];
+
+        if (insideString) {
+          if (escape) {
+            // Was escaped, just add char and reset escape
+            result += char;
+            escape = false;
+          } else {
+            if (char === '\\') {
+              escape = true;
+              result += char;
+            } else if (char === '"') {
+              insideString = false;
+              result += char;
+            } else if (char === '\n') {
+              // This is an unescaped newline INSIDE a string. Escape it.
+              result += '\\n';
+            } else if (char === '\r') {
+              // This is an unescaped carriage return INSIDE a string. Escape it.
+              result += '\\r';
+            } else if (char === '\t') {
+              // This is an unescaped tab INSIDE a string. Escape it.
+              result += '\\t';
+            } else {
+              result += char;
+            }
+          }
+        } else {
+          // Not inside string
+          if (char === '"') {
+            insideString = true;
+          }
+          result += char;
+        }
+      }
+
+      return result;
+    };
+
     // Parse and validate JSON response
     let parsedResult;
     try {
-      parsedResult = JSON.parse(responseText);
+      const jsonStr = cleanJson(responseText);
+      parsedResult = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('Failed to parse JSON from Cohere:', parseError);
       return NextResponse.json(

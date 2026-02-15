@@ -15,7 +15,7 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<EvidenceChip[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [insights, setInsights] = useState<{ related_research: string; action_items: string } | null>(null);
+  const [insights, setInsights] = useState<{ related_research: string; action_items: string; supporting_evidence: string } | null>(null);
 
   const storageKey = useMemo(() => {
     return selectedNode?.nodeId ? `evidence:${selectedNode.nodeId}` : undefined;
@@ -64,6 +64,36 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const generateInsights = async () => {
+    if (attached.length === 0) return;
+    setIsSearching(true);
+    setError(null);
+    setInsights(null);
+    try {
+      const res = await fetch('/api/scout/evidence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: selectedNode?.label || 'Insights', // Fallback query
+          nodeLabel: selectedNode?.label,
+          nodeContent: selectedNode?.content,
+          productContext,
+          evidence: attached // Send attached evidence to skip search
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Insight generation failed');
+
+      if (data.insights) {
+        setInsights(data.insights);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Insight generation failed');
     } finally {
       setIsSearching(false);
     }
@@ -276,16 +306,37 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
           {/* Attached Evidence */}
           {attached.length > 0 && (
             <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                color: '#60a5fa',
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                Attached Evidence
-              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#60a5fa',
+                  margin: 0,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Attached Evidence
+                </h4>
+                <button
+                  onClick={generateInsights}
+                  disabled={isSearching}
+                  style={{
+                    padding: '0.25rem 0.6rem',
+                    background: 'rgba(96, 165, 250, 0.2)',
+                    border: '1px solid rgba(96, 165, 250, 0.4)',
+                    borderRadius: '0.25rem',
+                    color: '#60a5fa',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: isSearching ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.2)'}
+                >
+                  {isSearching ? 'Generating...' : 'Generate Insights'}
+                </button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {attached.map((a, i) => (
                   <div key={i} style={{
@@ -325,7 +376,15 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
               fontSize: '0.875rem',
               fontStyle: 'italic'
             }}>
-              Evidence collection and analysis will be implemented in future phases.
+              {insights?.supporting_evidence ? (
+                renderMarkdownList(insights.supporting_evidence)
+              ) : (
+                <span style={{ fontStyle: 'italic', color: '#a78bfa' }}>
+                  {attached.length > 0
+                    ? "Click 'Generate Insights' above to analyze attached evidence."
+                    : "Attach evidence and generate insights to see analysis."}
+                </span>
+              )}
             </div>
           </div>
 
