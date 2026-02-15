@@ -224,6 +224,7 @@ const IdeaPage = () => {
     const researchNodes = currentNodes.filter((n) => n.type === 'research');
     const scoutEdges = currentEdges.filter((e) => e.id.startsWith('scout-'));
 
+    // Always rebuild from latestResult to ensure map shows current project/idea data
     const { nodes: baseNodes, edges: baseEdges } = generateNodesAndEdges(latestResult);
     const allNodes = [...baseNodes, ...researchNodes];
     const allEdges = [...baseEdges, ...scoutEdges];
@@ -285,6 +286,14 @@ const IdeaPage = () => {
 
   // Map is built only when user clicks "Generate map" on the Map tab (not on Send or tab switch)
   const mapIsBuilt = nodes.length > 0;
+
+  // Ensure map rebuilds when latestResult changes (e.g. new idea generated for different project)
+  React.useEffect(() => {
+    if (latestResult && mapIsBuilt && activeTab === 'map') {
+      // Auto-rebuild map when latestResult changes and map is already built
+      layoutFromLatest();
+    }
+  }, [latestResult, mapIsBuilt, activeTab, layoutFromLatest]);
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden pt-20">
@@ -351,8 +360,22 @@ const IdeaPage = () => {
                     fitView
                     attributionPosition="bottom-left"
                   >
-                    <Controls />
-                    <MiniMap />
+                    <Controls 
+                      style={{
+                        background: 'rgba(0,0,0,0.8)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <MiniMap 
+                      style={{
+                        background: 'rgba(0,0,0,0.8)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '0.5rem'
+                      }}
+                      nodeColor="#9333ea"
+                      maskColor="rgba(0,0,0,0.5)"
+                    />
                     <Background />
                   </ReactFlow>
                 )}
