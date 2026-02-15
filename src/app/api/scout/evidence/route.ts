@@ -121,6 +121,35 @@ function truncateSnippet(text: string, maxSentences = 5, maxChars = 500): string
     return result;
 }
 
+/** Turn node content (social_fit, improvements, followups, etc.) into a short text string for search context */
+function nodeContentToSearchContext(nodeContent: unknown, maxChars: number = 500): string {
+    if (nodeContent == null) return '';
+    if (typeof nodeContent === 'string') return nodeContent.slice(0, maxChars);
+    if (!Array.isArray(nodeContent)) return String(nodeContent).slice(0, maxChars);
+
+    const parts: string[] = [];
+    for (const item of nodeContent) {
+        if (typeof item === 'string') {
+            parts.push(item);
+        } else if (item && typeof item === 'object') {
+            const obj = item as Record<string, unknown>;
+            if (obj.platform != null && obj.why != null) {
+                parts.push(`${obj.platform}: ${obj.why}`);
+            } else if (obj.segment != null && Array.isArray(obj.ideas)) {
+                parts.push(`${obj.segment}: ${(obj.ideas as string[]).join('; ')}`);
+            } else if (obj.name != null) {
+                parts.push(String(obj.name) + (obj.why_it_fits ? ` ${obj.why_it_fits}` : ''));
+            } else if (obj.risk != null) {
+                parts.push(String(obj.risk) + (obj.mitigation ? ` → ${obj.mitigation}` : ''));
+            } else {
+                parts.push(JSON.stringify(obj));
+            }
+        }
+    }
+    const text = parts.join('. ').trim();
+    return text.length > maxChars ? text.slice(0, maxChars) + '...' : text;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const { email, id } = await extractUserFromHeaders(request);
@@ -139,6 +168,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Tavily API key not configured' }, { status: 500 });
         }
 
+        const nodeContentText = nodeContentToSearchContext(nodeContent);
+
         let searchResults: EvidenceResult[] = [];
 
         if (evidence && Array.isArray(evidence) && evidence.length > 0) {
@@ -147,31 +178,50 @@ export async function POST(request: NextRequest) {
         } else {
             // 1. Search Tavily (Hybrid Strategy)
 
-            // A. Specific AI Query (Node-Aware)
-            const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '');
+            // A. Specific AI Query (Node-Aware: uses node label + node content text for social_fit, improvements, followups, etc.)
+            const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '', nodeContentText);
             console.log('Specific Query:', specificQuery);
 
-            // B. Broad Context Query (Node-Aware)
-            const broadQuery = nodeLabel
-                ? `${nodeLabel} for ${productContext ? productContext.slice(0, 50) : query}`
+            // B. Broad Context Query (Node-Aware: include node content so search matches the node's actual text)
+            const isImprovements = (nodeLabel || '').toLowerCase().includes('improvement');
+            let contextPart: string;
+            if (nodeContentText) {
+                contextPart = `${nodeLabel || query} ${nodeContentText.slice(0, 200)}`;
+            } else {
+                contextPart = nodeLabel ? `${nodeLabel} for ${productContext ? productContext.slice(0, 50) : query}` : '';
+            }
+            if (isImprovements) {
+                contextPart = `product improvement ideas recommendations what to add ${contextPart}`;
+            }
+            const broadQuery = contextPart
+                ? `${contextPart}${productContext ? ` ${productContext.slice(0, 80)}` : ''}`
                 : (productContext ? `${query} ${productContext.slice(0, 50)}` : query);
             console.log('Broad Query:', broadQuery);
 
-            // Run searches in parallel (Fetch 5 from each to get ~10 diverse candidates)
-            // Note: tavilySearch expects maxResults as 3rd arg
-            const [specificResults, broadResults] = await Promise.all([
-                tavilySearch(tavilyKey, specificQuery, 5),
-                tavilySearch(tavilyKey, broadQuery, 5)
-            ]);
+            // Run searches in parallel. For Improvements node, add a dedicated "improvement ideas" query for better relevance.
+            const improvementQuery = isImprovements
+                ? `product improvement ideas what features to add recommendations ${(productContext || query).slice(0, 100)}`
+                : null;
 
-            // Merge and Deduplicate by URL
-            const allResults = [...specificResults, ...broadResults];
+            const searchPromises: Promise<EvidenceResult[]>[] = [
+                tavilySearch(tavilyKey, specificQuery, 5),
+                tavilySearch(tavilyKey, broadQuery, 5),
+            ];
+            if (improvementQuery) {
+                console.log('Improvements node: extra query:', improvementQuery);
+                searchPromises.push(tavilySearch(tavilyKey, improvementQuery, 5));
+            }
+
+            const searchResultsArrays = await Promise.all(searchPromises);
+            const allResults = searchResultsArrays.flat();
+
+            // Merge and Deduplicate by URL (keep first occurrence so improvement-focused results can rank earlier)
             const uniqueResults = Array.from(new Map(allResults.map(item => [item.url, item])).values());
 
             console.log(`Merged ${allResults.length} results into ${uniqueResults.length} unique items.`);
 
             // Curate the top 5 results using LLM (Node-Aware)
-            searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '');
+            searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '', nodeContentText);
             console.log(`Curated down to ${searchResults.length} results`);
         }
 
@@ -306,16 +356,39 @@ Return ONLY valid JSON in this format:
     }
 }
 
-async function generateSearchQuery(userQuery: string, productContext: string, nodeLabel: string): Promise<string> {
+function isImprovementsNode(nodeLabel: string): boolean {
+    const label = (nodeLabel || '').toLowerCase();
+    return label.includes('improvement');
+}
+
+async function generateSearchQuery(
+    userQuery: string,
+    productContext: string,
+    nodeLabel: string,
+    nodeContentText: string = ''
+): Promise<string> {
     try {
+        const contentBlock = nodeContentText
+            ? `\nContent of this aspect (use this to target the search): "${nodeContentText.slice(0, 400)}"`
+            : '';
+
+        const improvementsGuidance = isImprovementsNode(nodeLabel)
+            ? `
+IMPORTANT: This aspect is "Improvements" – the user wants IMPROVEMENT IDEAS, RECOMMENDATIONS, and FEATURE GAPS for their product.
+Craft the search query to find: product improvement suggestions, feature recommendations, "what to add", "how to improve", gaps in the market, user feedback for similar products, wish lists, and expert recommendations.
+AVOID queries that only return descriptions of existing products; favor queries that surface improvement ideas, comparison "what's missing", and recommendation lists.`
+            : '';
+
         const prompt = `
 You are an expert at crafting search queries for market research.
 
 Product Context: "${productContext ? productContext.slice(0, 300) : 'New Product Idea'}"
 Specific Aspect: "${nodeLabel || 'General Analysis'}"
-User Intent: "${userQuery}"
+User Intent: "${userQuery}"${contentBlock}
+${improvementsGuidance}
 
 Your goal is to find specific evidence, statistics, market data, and competitors related to the SPECIFIC ASPECT ("${nodeLabel}").
+${nodeContentText ? 'Use the aspect content above to make the search query concrete (e.g. platform names, segment names, improvement themes, or follow-up topics).' : ''}
 Convert the user's intent into a single, highly targeted search query optimized for a search engine like Google.
 Focus on finding "hard" data (numbers, dates, names) and authoritative sources.
 
@@ -328,36 +401,56 @@ Return ONLY the search query string. Do not use quotes.
         );
 
         const refinedQuery = response.trim().replace(/^"|"$/g, '');
-        // Ensure we don't return empty string
         return refinedQuery || userQuery;
     } catch (error) {
         console.error('Error generating search query:', error);
-        // Fallback to naive concatenation
-        const base = nodeLabel ? `${nodeLabel} ${userQuery}` : userQuery;
-        return productContext
-            ? `${base} ${productContext.slice(0, 50)}`
-            : base;
+        let base: string;
+        if (isImprovementsNode(nodeLabel)) {
+            base = nodeContentText
+                ? `product improvement ideas recommendations ${nodeContentText.slice(0, 100)} ${userQuery}`
+                : `product improvement ideas feature recommendations ${userQuery}`;
+        } else {
+            base = nodeContentText
+                ? `${nodeLabel || userQuery} ${nodeContentText.slice(0, 150)} ${userQuery}`
+                : (nodeLabel ? `${nodeLabel} ${userQuery}` : userQuery);
+        }
+        return productContext ? `${base} ${productContext.slice(0, 50)}` : base;
     }
 }
 
-async function curateResults(results: EvidenceResult[], userQuery: string, productContext: string, nodeLabel: string): Promise<EvidenceResult[]> {
+async function curateResults(
+    results: EvidenceResult[],
+    userQuery: string,
+    productContext: string,
+    nodeLabel: string,
+    nodeContentText: string = ''
+): Promise<EvidenceResult[]> {
     if (results.length <= 5) return results;
 
     try {
         const resultsContext = results.map((r, i) => `[${i}] URL: ${r.url}\nSnippet: ${r.snippet}`).join('\n\n');
+        const contentBlock = nodeContentText
+            ? `\nAspect content (prioritize results that match these topics): "${nodeContentText.slice(0, 300)}"`
+            : '';
+
+        const improvementsCriteria = isImprovementsNode(nodeLabel)
+            ? `
+IMPORTANT: This aspect is "Improvements". STRONGLY PREFER results that discuss: improvement ideas, feature recommendations, "what to add", "how to improve", product gaps, user wish lists, expert suggestions, or "what's missing" in similar products. EXCLUDE or rank last: results that only describe a single existing product's features, product announcements, or content that does not discuss improvements or recommendations. If a result is off-topic (e.g. unrelated to the product category), do not select it.`
+            : '';
 
         const prompt = `
 You are an expert researcher. Your goal is to select the TOP 5 most relevant and high-quality search results for the user's query.
 
 User Query: "${userQuery}"
-Specific Aspect: "${nodeLabel || 'General Analysis'}"
+Specific Aspect: "${nodeLabel || 'General Analysis'}"${contentBlock}
 Product Context: "${productContext.slice(0, 200)}"
+${improvementsCriteria}
 
 Candidate Results:
 ${resultsContext}
 
 Criteria for selection:
-1. Direct relevance to the SPECIFIC ASPECT ("${nodeLabel}").
+1. Direct relevance to the SPECIFIC ASPECT ("${nodeLabel}")${nodeContentText ? ' and to the aspect content above' : ''}.
 2. Presence of "hard evidence" (statistics, data, specific facts).
 3. Authoritative sources.
 4. Diversity of information.
