@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X, Home, FolderOpen, Lightbulb, Settings } from "lucide-react";
+import { LogOut, Menu, X, Home, FolderOpen, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
     const pathname = usePathname();
-    const router = useRouter();
-    const { user, signOut } = useAuth();
+    const { user } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Hide navbar on Login, and Signup pages
@@ -21,17 +20,10 @@ export function Navbar() {
         return null;
     }
 
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/login"); // Explicit redirect ensures we go to login
-        router.refresh(); // Refresh to clear any cached auth state
-    };
-
     const navLinks = [
         { name: "Home", href: "/", icon: Home },
         { name: "Projects", href: "/projects", icon: FolderOpen },
         { name: "Idea", href: "/idea", icon: Lightbulb },
-        { name: "Settings", href: "/settings", icon: Settings },
     ];
 
     return (
@@ -77,22 +69,19 @@ export function Navbar() {
 
                         <div className="h-6 w-px bg-white/10" />
 
-                        {/* Auth Buttons */}
+                        {/* User: link to Settings (logout is on Settings page) */}
                         {user ? (
-                            <div className="flex items-center gap-6">
-                                <span className="text-xs text-white/40 font-mono">
-                                    {user.email}
+                            <Link
+                                href="/settings"
+                                className={cn(
+                                    "flex items-center gap-2 text-sm font-mono transition-colors",
+                                    pathname === "/settings" ? "text-white" : "text-white/60 hover:text-white"
+                                )}
+                            >
+                                <span className="text-xs max-w-[180px] truncate">
+                                    {user.user_metadata?.full_name || user.user_metadata?.name || user.email}
                                 </span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleLogout}
-                                    className="font-mono text-white hover:text-white hover:bg-white/10 px-2"
-                                >
-                                    Logout
-                                    <LogOut className="w-4 h-4 ml-2 rotate-180" />
-                                </Button>
-                            </div>
+                            </Link>
                         ) : (
                             <div className="flex items-center gap-4">
                                 <Link href="/login">
@@ -145,19 +134,16 @@ export function Navbar() {
                         <div className="h-px bg-white/10 my-4" />
 
                         {user ? (
-                            <>
-                                <div className="text-xs text-white/40 font-mono px-2 mb-2">
-                                    Signed in as {user.email}
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    onClick={handleLogout}
-                                    className="w-full justify-start font-mono text-white/80 hover:text-white hover:bg-white/10"
-                                >
-                                    <LogOut className="w-4 h-4 mr-2" />
-                                    Logout
-                                </Button>
-                            </>
+                            <Link
+                                href="/settings"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={cn(
+                                    "flex items-center gap-3 py-2 text-base font-mono",
+                                    pathname === "/settings" ? "text-white" : "text-white/60"
+                                )}
+                            >
+                                {user.user_metadata?.full_name || user.user_metadata?.name || user.email}
+                            </Link>
                         ) : (
                             <div className="space-y-2">
                                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>

@@ -4,9 +4,10 @@ import { useAuth } from '@/providers/auth-provider';
 import { createBrowserClient } from '@supabase/ssr';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 
 export default function SettingsPage() {
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
     const router = useRouter();
     const [name, setName] = useState(user?.user_metadata?.name || '');
     const [isLoading, setIsLoading] = useState(false);
@@ -44,12 +45,18 @@ export default function SettingsPage() {
         alert("To effectively delete your account and all data, please contact support or an admin. (This button is a placeholder for the API integration)");
     };
 
+    const handleLogout = async () => {
+        await signOut();
+        router.push("/login");
+        router.refresh();
+    };
+
     if (!user) {
         return <div className="min-h-screen bg-black text-white p-8">Loading...</div>;
     }
 
     return (
-        <div className="min-h-screen bg-black text-white p-8 font-mono">
+        <div className="min-h-screen bg-black text-white pt-24 px-8 pb-8 font-mono">
             <div className="max-w-2xl mx-auto space-y-8">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">Account Settings</h1>
@@ -94,6 +101,21 @@ export default function SettingsPage() {
                             {isLoading ? 'Saving...' : 'Update Profile'}
                         </button>
                     </form>
+                </section>
+
+                <section className="bg-white/5 border border-white/10 p-6 rounded-lg space-y-4">
+                    <h2 className="text-lg font-semibold border-b border-white/10 pb-2">Sign out</h2>
+                    <p className="text-xs text-white/50">
+                        Sign out of your account on this device.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 border border-white/20 text-white px-4 py-2 text-sm hover:bg-white/10 transition"
+                    >
+                        <LogOut className="w-4 h-4 rotate-180" />
+                        Log out
+                    </button>
                 </section>
 
                 <section className="bg-red-900/10 border border-red-500/20 p-6 rounded-lg space-y-4">
