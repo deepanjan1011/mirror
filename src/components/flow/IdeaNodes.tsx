@@ -80,7 +80,7 @@ export function SummaryNode({ data, selected }: NodeProps<NodeData>) {
       }}>
         {typeof data.content === 'string' ? data.content : 'Content preview'}
       </div>
-      {data.onToggleExpand && (
+      {data.onToggleExpand && typeof data.content === 'string' && data.content.length > 150 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -120,23 +120,27 @@ export function SegmentsNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         👥 Target Segments ({segments.length})
       </div>
-      <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
-        {segments.slice(0, data.isExpanded ? segments.length : 2).map((segment, i) => (
+      <div style={{ 
+        maxHeight: data.isExpanded ? 'none' : '140px', 
+        overflow: 'hidden',
+        paddingBottom: '4px',
+      }}>
+        {segments.slice(0, data.isExpanded ? segments.length : 1).map((segment, i, arr) => (
           <div key={i} style={{
-            marginBottom: '6px',
+            marginBottom: i === arr.length - 1 ? '0' : '6px',
             padding: '6px',
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
             <div style={{ fontWeight: '500', color: '#c4b5fd' }}>{segment.name}</div>
-            <div style={{ color: '#d1d5db', fontSize: '11px' }}>
+            <div style={{ color: '#d1d5db', fontSize: '11px', lineHeight: '1.4' }}>
               {segment.hooks.length} hooks • {segment.kpis.length} KPIs
             </div>
           </div>
         ))}
       </div>
-      {data.onToggleExpand && segments.length > 2 && (
+      {data.onToggleExpand && segments.length > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -153,7 +157,7 @@ export function SegmentsNode({ data, selected }: NodeProps<NodeData>) {
             cursor: 'pointer',
           }}
         >
-          {data.isExpanded ? 'Collapse' : `Show all ${segments.length}`}
+          {data.isExpanded ? 'Collapse' : 'Expand'}
         </button>
       )}
     </div>
@@ -176,21 +180,26 @@ export function FeaturesNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         ⚡ Core Features ({features.length})
       </div>
-      <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
-        {features.slice(0, data.isExpanded ? features.length : 3).map((feature, i) => (
+      <div style={{ 
+        maxHeight: data.isExpanded ? 'none' : '140px', 
+        overflow: 'hidden',
+        paddingBottom: '4px',
+      }}>
+        {features.slice(0, data.isExpanded ? features.length : 1).map((feature, i, arr) => (
           <div key={i} style={{
-            marginBottom: '4px',
+            marginBottom: i === arr.length - 1 ? '0' : '4px',
             padding: '4px 8px',
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px',
-            color: '#6ee7b7'
+            color: '#6ee7b7',
+            lineHeight: '1.4'
           }}>
             • {feature}
           </div>
         ))}
       </div>
-      {data.onToggleExpand && features.length > 3 && (
+      {data.onToggleExpand && features.length > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -207,7 +216,7 @@ export function FeaturesNode({ data, selected }: NodeProps<NodeData>) {
             cursor: 'pointer',
           }}
         >
-          {data.isExpanded ? 'Collapse' : `Show all ${features.length}`}
+          {data.isExpanded ? 'Collapse' : 'Expand'}
         </button>
       )}
     </div>
@@ -230,25 +239,29 @@ export function RisksNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         ⚠️ Risks & Mitigations ({risks.length})
       </div>
-      <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
-        {risks.slice(0, data.isExpanded ? risks.length : 2).map((risk, i) => (
+      <div style={{ 
+        maxHeight: data.isExpanded ? 'none' : '140px', 
+        overflow: 'hidden',
+        paddingBottom: '4px',
+      }}>
+        {risks.slice(0, data.isExpanded ? risks.length : 1).map((risk, i, arr) => (
           <div key={i} style={{
-            marginBottom: '6px',
+            marginBottom: i === arr.length - 1 ? '0' : '6px',
             padding: '6px',
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
-            <div style={{ fontWeight: '500', color: '#fca5a5', marginBottom: '2px' }}>
+            <div style={{ fontWeight: '500', color: '#fca5a5', marginBottom: '2px', lineHeight: '1.4' }}>
               {risk.risk}
             </div>
-            <div style={{ color: '#86efac', fontSize: '11px' }}>
+            <div style={{ color: '#86efac', fontSize: '11px', lineHeight: '1.4' }}>
               → {risk.mitigation}
             </div>
           </div>
         ))}
       </div>
-      {data.onToggleExpand && risks.length > 2 && (
+      {data.onToggleExpand && risks.length > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -265,7 +278,7 @@ export function RisksNode({ data, selected }: NodeProps<NodeData>) {
             cursor: 'pointer',
           }}
         >
-          {data.isExpanded ? 'Collapse' : `Show all ${risks.length}`}
+          {data.isExpanded ? 'Collapse' : 'Expand'}
         </button>
       )}
     </div>
@@ -288,21 +301,25 @@ export function SocialFitNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         📱 Social Platform Fit ({socialFit.length})
       </div>
-      <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
-        {socialFit.slice(0, data.isExpanded ? socialFit.length : 3).map((social, i) => (
+      <div style={{ 
+        maxHeight: data.isExpanded ? 'none' : '140px', 
+        overflow: 'hidden',
+        paddingBottom: '4px',
+      }}>
+        {socialFit.slice(0, data.isExpanded ? socialFit.length : 1).map((social, i, arr) => (
           <div key={i} style={{
-            marginBottom: '4px',
+            marginBottom: i === arr.length - 1 ? '0' : '4px',
             padding: '4px 8px',
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
             <span style={{ fontWeight: '500', color: '#93c5fd' }}>{social.platform}</span>
-            <div style={{ color: '#d1d5db', fontSize: '11px' }}>{social.why}</div>
+            <div style={{ color: '#d1d5db', fontSize: '11px', lineHeight: '1.4' }}>{social.why}</div>
           </div>
         ))}
       </div>
-      {data.onToggleExpand && socialFit.length > 3 && (
+      {data.onToggleExpand && socialFit.length > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -319,7 +336,7 @@ export function SocialFitNode({ data, selected }: NodeProps<NodeData>) {
             cursor: 'pointer',
           }}
         >
-          {data.isExpanded ? 'Collapse' : `Show all ${socialFit.length}`}
+          {data.isExpanded ? 'Collapse' : 'Expand'}
         </button>
       )}
     </div>
@@ -342,25 +359,29 @@ export function ImprovementsNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         💡 Improvements ({improvements.length})
       </div>
-      <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
-        {improvements.slice(0, data.isExpanded ? improvements.length : 2).map((improvement, i) => (
+      <div style={{ 
+        maxHeight: data.isExpanded ? 'none' : '140px', 
+        overflow: 'hidden',
+        paddingBottom: '4px',
+      }}>
+        {improvements.slice(0, data.isExpanded ? improvements.length : 1).map((improvement, i, arr) => (
           <div key={i} style={{
-            marginBottom: '6px',
+            marginBottom: i === arr.length - 1 ? '0' : '6px',
             padding: '6px',
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px'
           }}>
-            <div style={{ fontWeight: '500', color: '#fbbf24', marginBottom: '2px' }}>
+            <div style={{ fontWeight: '500', color: '#fbbf24', marginBottom: '2px', lineHeight: '1.4' }}>
               {improvement.segment}
             </div>
-            <div style={{ color: '#d1d5db', fontSize: '11px' }}>
+            <div style={{ color: '#d1d5db', fontSize: '11px', lineHeight: '1.4' }}>
               {improvement.ideas.length} improvement ideas
             </div>
           </div>
         ))}
       </div>
-      {data.onToggleExpand && improvements.length > 2 && (
+      {data.onToggleExpand && improvements.length > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -377,7 +398,7 @@ export function ImprovementsNode({ data, selected }: NodeProps<NodeData>) {
             cursor: 'pointer',
           }}
         >
-          {data.isExpanded ? 'Collapse' : `Show all ${improvements.length}`}
+          {data.isExpanded ? 'Collapse' : 'Expand'}
         </button>
       )}
     </div>
@@ -399,21 +420,26 @@ export function FollowupsNode({ data, selected }: NodeProps<NodeData>) {
       <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
         ❓ Follow-up Questions ({followups.length})
       </div>
-      <div style={{ maxHeight: data.isExpanded ? 'none' : '100px', overflow: 'hidden' }}>
-        {followups.slice(0, data.isExpanded ? followups.length : 2).map((question, i) => (
+      <div style={{ 
+        maxHeight: data.isExpanded ? 'none' : '140px', 
+        overflow: 'hidden',
+        paddingBottom: '4px',
+      }}>
+        {followups.slice(0, data.isExpanded ? followups.length : 1).map((question, i, arr) => (
           <div key={i} style={{
-            marginBottom: '4px',
+            marginBottom: i === arr.length - 1 ? '0' : '4px',
             padding: '4px 8px',
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '4px',
             fontSize: '12px',
-            color: '#d1d5db'
+            color: '#d1d5db',
+            lineHeight: '1.4'
           }}>
             • {question}
           </div>
         ))}
       </div>
-      {data.onToggleExpand && followups.length > 2 && (
+      {data.onToggleExpand && followups.length > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -430,7 +456,7 @@ export function FollowupsNode({ data, selected }: NodeProps<NodeData>) {
             cursor: 'pointer',
           }}
         >
-          {data.isExpanded ? 'Collapse' : `Show all ${followups.length}`}
+          {data.isExpanded ? 'Collapse' : 'Expand'}
         </button>
       )}
     </div>
