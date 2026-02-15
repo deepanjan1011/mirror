@@ -101,25 +101,38 @@ const IdeaPage = () => {
     setMessages((prev) => [...prev, { role: 'user', text: userText }]);
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+
     try {
       const response = await fetch('/api/ideate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea: userText })
+        body: JSON.stringify({ idea: userText }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to generate concept');
       }
 
-      const data: { id: string; result: IdeaResult } = await response.json();
-      setMessages((prev) => [...prev, { role: 'assistant', result: data.result, savedId: data.id }]);
+      const data = await response.json();
+      if (!data?.result || typeof data.result?.summary !== 'string') {
+        setError('Invalid response from server. Please try again.');
+        return;
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', result: data.result as IdeaResult, savedId: data.id }]);
       // Clear map so it’s built on demand for this new idea (Map tab stays fast)
       setNodes([]);
       setEdges([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') setError('Request timed out. Try again.');
+        else setError(err.message);
+      } else setError('Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -359,6 +372,10 @@ const IdeaPage = () => {
                   {m.role === 'user' ? (
                     <div className="max-w-[80%] bg-white text-black px-3 py-2 text-xs font-mono">
                       {m.text}
+                    </div>
+                  ) : !m.result?.summary ? (
+                    <div className="max-w-[90%] w-full border border-white/10 bg-black/40 p-3 text-xs text-white/60 font-mono">
+                      Response could not be loaded. Please try again.
                     </div>
                   ) : (
                     <div className="max-w-[90%] w-full border border-white/10 bg-black/40 p-3 md:p-4 text-xs text-white/90 font-mono space-y-3">

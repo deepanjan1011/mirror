@@ -182,40 +182,19 @@ export async function POST(request: NextRequest) {
             const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '', nodeContentText);
             console.log('Specific Query:', specificQuery);
 
-            // B. Broad Context Query (Node-Aware: include node content so search matches the node's actual text)
-            const isImprovements = (nodeLabel || '').toLowerCase().includes('improvement');
-            let contextPart: string;
-            if (nodeContentText) {
-                contextPart = `${nodeLabel || query} ${nodeContentText.slice(0, 200)}`;
-            } else {
-                contextPart = nodeLabel ? `${nodeLabel} for ${productContext ? productContext.slice(0, 50) : query}` : '';
-            }
-            if (isImprovements) {
-                contextPart = `product improvement ideas recommendations what to add ${contextPart}`;
-            }
-            const broadQuery = contextPart
-                ? `${contextPart}${productContext ? ` ${productContext.slice(0, 80)}` : ''}`
-                : (productContext ? `${query} ${productContext.slice(0, 50)}` : query);
+            // B. Broad query: user's text + node/product context (no injected phrases)
+            const broadQuery = [query, nodeContentText.slice(0, 150), productContext?.slice(0, 80)].filter(Boolean).join(' ');
             console.log('Broad Query:', broadQuery);
-
-            // Run searches in parallel. For Improvements node, add a dedicated "improvement ideas" query for better relevance.
-            const improvementQuery = isImprovements
-                ? `product improvement ideas what features to add recommendations ${(productContext || query).slice(0, 100)}`
-                : null;
 
             const searchPromises: Promise<EvidenceResult[]>[] = [
                 tavilySearch(tavilyKey, specificQuery, 5),
                 tavilySearch(tavilyKey, broadQuery, 5),
             ];
-            if (improvementQuery) {
-                console.log('Improvements node: extra query:', improvementQuery);
-                searchPromises.push(tavilySearch(tavilyKey, improvementQuery, 5));
-            }
 
             const searchResultsArrays = await Promise.all(searchPromises);
             const allResults = searchResultsArrays.flat();
 
-            // Merge and Deduplicate by URL (keep first occurrence so improvement-focused results can rank earlier)
+            // Merge and Deduplicate by URL
             const uniqueResults = Array.from(new Map(allResults.map(item => [item.url, item])).values());
 
             console.log(`Merged ${allResults.length} results into ${uniqueResults.length} unique items.`);
@@ -356,11 +335,6 @@ Return ONLY valid JSON in this format:
     }
 }
 
-function isImprovementsNode(nodeLabel: string): boolean {
-    const label = (nodeLabel || '').toLowerCase();
-    return label.includes('improvement');
-}
-
 async function generateSearchQuery(
     userQuery: string,
     productContext: string,
@@ -372,26 +346,15 @@ async function generateSearchQuery(
             ? `\nContent of this aspect (use this to target the search): "${nodeContentText.slice(0, 400)}"`
             : '';
 
-        const improvementsGuidance = isImprovementsNode(nodeLabel)
-            ? `
-IMPORTANT: This aspect is "Improvements" – the user wants IMPROVEMENT IDEAS, RECOMMENDATIONS, and FEATURE GAPS for their product.
-Craft the search query to find: product improvement suggestions, feature recommendations, "what to add", "how to improve", gaps in the market, user feedback for similar products, wish lists, and expert recommendations.
-AVOID queries that only return descriptions of existing products; favor queries that surface improvement ideas, comparison "what's missing", and recommendation lists.`
-            : '';
-
         const prompt = `
 You are an expert at crafting search queries for market research.
 
+The user's search text (User Intent) is PRIMARY – the query must directly reflect what they asked.
 Product Context: "${productContext ? productContext.slice(0, 300) : 'New Product Idea'}"
-Specific Aspect: "${nodeLabel || 'General Analysis'}"
-User Intent: "${userQuery}"${contentBlock}
-${improvementsGuidance}
+Specific Aspect (node context): "${nodeLabel || 'General Analysis'}"
+User Intent (what they typed – use this as the main driver): "${userQuery}"${contentBlock}
 
-Your goal is to find specific evidence, statistics, market data, and competitors related to the SPECIFIC ASPECT ("${nodeLabel}").
-${nodeContentText ? 'Use the aspect content above to make the search query concrete (e.g. platform names, segment names, improvement themes, or follow-up topics).' : ''}
-Convert the user's intent into a single, highly targeted search query optimized for a search engine like Google.
-Focus on finding "hard" data (numbers, dates, names) and authoritative sources.
-
+Convert the user's intent into a single, targeted search query. Use the aspect and product context only to focus or narrow (e.g. add product category if helpful). Do not replace or override the user's wording with different phrases.
 Return ONLY the search query string. Do not use quotes.
 `;
 
@@ -404,17 +367,10 @@ Return ONLY the search query string. Do not use quotes.
         return refinedQuery || userQuery;
     } catch (error) {
         console.error('Error generating search query:', error);
-        let base: string;
-        if (isImprovementsNode(nodeLabel)) {
-            base = nodeContentText
-                ? `product improvement ideas recommendations ${nodeContentText.slice(0, 100)} ${userQuery}`
-                : `product improvement ideas feature recommendations ${userQuery}`;
-        } else {
-            base = nodeContentText
-                ? `${nodeLabel || userQuery} ${nodeContentText.slice(0, 150)} ${userQuery}`
-                : (nodeLabel ? `${nodeLabel} ${userQuery}` : userQuery);
-        }
-        return productContext ? `${base} ${productContext.slice(0, 50)}` : base;
+        const base = nodeContentText
+            ? `${userQuery} ${nodeContentText.slice(0, 120)}`
+            : (nodeLabel ? `${userQuery} ${nodeLabel}` : userQuery);
+        return productContext ? `${base} ${productContext.slice(0, 60)}` : base;
     }
 }
 
@@ -433,27 +389,17 @@ async function curateResults(
             ? `\nAspect content (prioritize results that match these topics): "${nodeContentText.slice(0, 300)}"`
             : '';
 
-        const improvementsCriteria = isImprovementsNode(nodeLabel)
-            ? `
-IMPORTANT: This aspect is "Improvements". STRONGLY PREFER results that discuss: improvement ideas, feature recommendations, "what to add", "how to improve", product gaps, user wish lists, expert suggestions, or "what's missing" in similar products. EXCLUDE or rank last: results that only describe a single existing product's features, product announcements, or content that does not discuss improvements or recommendations. If a result is off-topic (e.g. unrelated to the product category), do not select it.`
-            : '';
-
         const prompt = `
-You are an expert researcher. Your goal is to select the TOP 5 most relevant and high-quality search results for the user's query.
+You are an expert researcher. Select the TOP 5 results that best match what the user asked.
 
-User Query: "${userQuery}"
-Specific Aspect: "${nodeLabel || 'General Analysis'}"${contentBlock}
-Product Context: "${productContext.slice(0, 200)}"
-${improvementsCriteria}
+User's search text (primary – what they want to see): "${userQuery}"
+Aspect (node) context: "${nodeLabel || 'General Analysis'}"${contentBlock}
+Product context: "${productContext.slice(0, 200)}"
 
 Candidate Results:
 ${resultsContext}
 
-Criteria for selection:
-1. Direct relevance to the SPECIFIC ASPECT ("${nodeLabel}")${nodeContentText ? ' and to the aspect content above' : ''}.
-2. Presence of "hard evidence" (statistics, data, specific facts).
-3. Authoritative sources.
-4. Diversity of information.
+Prefer results that directly address or answer the user's search text. Use aspect and product context only to judge relevance. Exclude off-topic results.
 
 Return a JSON array containing ONLY the indices of the top 5 results.
 Example: [0, 2, 5, 8, 9]
