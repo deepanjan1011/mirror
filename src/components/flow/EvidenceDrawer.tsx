@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NodeData } from './IdeaNodes';
 
 interface EvidenceDrawerProps {
@@ -11,28 +11,23 @@ interface EvidenceDrawerProps {
 type EvidenceChip = { snippet: string; url: string; score: number };
 
 export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }: EvidenceDrawerProps) {
-  const [query, setQuery] = useState('Why are we different?');
+  const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [results, setResults] = useState<EvidenceChip[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [insights, setInsights] = useState<{ related_research: string; action_items: string; supporting_evidence: string } | null>(null);
-
-  const storageKey = useMemo(() => {
-    return selectedNode?.nodeId ? `evidence:${selectedNode.nodeId}` : undefined;
-  }, [selectedNode?.nodeId]);
-
   const [attached, setAttached] = useState<EvidenceChip[]>([]);
 
+  // Reset when node changes: no memory of past evidence or insights (always dynamic)
   useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) setAttached(JSON.parse(raw));
-      else setAttached([]);
-    } catch {
-      setAttached([]);
-    }
-  }, [storageKey]);
+    if (!selectedNode) return;
+    setAttached([]);
+    setResults([]);
+    setInsights(null);
+    setQuery('');
+    setError(null);
+  }, [selectedNode?.nodeId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -43,25 +38,25 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
     if (!query.trim()) return;
     setIsSearching(true);
     setError(null);
-    setInsights(null); // Clear previous insights
+    setInsights(null);
     try {
       const res = await fetch('/api/scout/evidence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query,
+          query: query.trim(),
           nodeLabel: selectedNode?.label,
           nodeContent: selectedNode?.content,
-          productContext
+          productContext,
+          searchOnly: true, // Only fetch evidence; insights are generated only on "Generate Insights"
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Search failed');
 
-      setResults(data.results || []);
-      if (data.insights) {
-        setInsights(data.insights);
-      }
+      const searchResults = data.results || [];
+      setResults(searchResults);
+      setAttached([]); // Clear attached on new search; only "Attach to node" from Ranked Evidence adds to Attached
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');
     } finally {
@@ -71,19 +66,18 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
 
   const generateInsights = async () => {
     if (attached.length === 0) return;
-    setIsSearching(true);
+    setIsGeneratingInsights(true);
     setError(null);
-    setInsights(null);
     try {
       const res = await fetch('/api/scout/evidence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: selectedNode?.label || 'Insights', // Fallback query
+          query: selectedNode?.label || query || 'Insights',
           nodeLabel: selectedNode?.label,
           nodeContent: selectedNode?.content,
           productContext,
-          evidence: attached // Send attached evidence to skip search
+          evidence: attached, // Use current attached evidence; no search, only generate insights
         }),
       });
       const data = await res.json();
@@ -95,19 +89,14 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Insight generation failed');
     } finally {
-      setIsSearching(false);
+      setIsGeneratingInsights(false);
     }
   };
 
   const attachChip = (chip: EvidenceChip) => {
-    if (!storageKey) return;
     const exists = attached.find((c) => c.url === chip.url && c.snippet === chip.snippet);
     if (exists) return;
-    const next = [...attached, chip].slice(0, 12);
-    setAttached(next);
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
-    } catch { }
+    setAttached((prev) => [...prev, chip].slice(0, 12));
   };
 
   const renderMarkdownList = (text: string) => {
@@ -222,7 +211,7 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Why are we different?"
+                placeholder="e.g. Why are we different?"
                 style={{
                   flex: 1,
                   padding: '0.5rem 0.75rem',
@@ -319,7 +308,7 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
                 </h4>
                 <button
                   onClick={generateInsights}
-                  disabled={isSearching}
+                  disabled={isGeneratingInsights}
                   style={{
                     padding: '0.25rem 0.6rem',
                     background: 'rgba(96, 165, 250, 0.2)',
@@ -328,13 +317,13 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
                     color: '#60a5fa',
                     fontSize: '0.75rem',
                     fontWeight: '600',
-                    cursor: isSearching ? 'not-allowed' : 'pointer',
+                    cursor: isGeneratingInsights ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.3)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.2)'}
                 >
-                  {isSearching ? 'Generating...' : 'Generate Insights'}
+                  {isGeneratingInsights ? 'Generating...' : 'Generate Insights'}
                 </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -412,7 +401,7 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
                 renderMarkdownList(insights.related_research)
               ) : (
                 <span style={{ fontStyle: 'italic', color: '#6ee7b7' }}>
-                  Research insights will appear here after search...
+                  Click &apos;Generate Insights&apos; above to analyze attached evidence.
                 </span>
               )}
             </div>
@@ -442,7 +431,7 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
                 renderMarkdownList(insights.action_items)
               ) : (
                 <span style={{ fontStyle: 'italic', color: '#fbbf24' }}>
-                  Actionable next steps will appear here after search...
+                  Click &apos;Generate Insights&apos; above to analyze attached evidence.
                 </span>
               )}
             </div>

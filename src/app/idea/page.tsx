@@ -115,6 +115,9 @@ const IdeaPage = () => {
 
       const data: { id: string; result: IdeaResult } = await response.json();
       setMessages((prev) => [...prev, { role: 'assistant', result: data.result, savedId: data.id }]);
+      // Clear map so it’s built on demand for this new idea (Map tab stays fast)
+      setNodes([]);
+      setEdges([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -195,39 +198,31 @@ const IdeaPage = () => {
     [setEdges]
   );
 
+  const nodesRef = React.useRef<Node[]>([]);
+  const edgesRef = React.useRef<Edge[]>([]);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+
   const layoutFromLatest = useCallback(() => {
     if (!latestResult) return;
 
-    // Use functional updates to get the most recent state of both nodes and edges
-    // without causing dependency loops in the callback itself.
-    setNodes((currentNodes) => {
-      // Find current research nodes to preserve them
-      const researchNodes = currentNodes.filter(n => n.type === 'research');
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const researchNodes = currentNodes.filter((n) => n.type === 'research');
+    const scoutEdges = currentEdges.filter((e) => e.id.startsWith('scout-'));
 
-      setEdges((currentEdges) => {
-        const { nodes: baseNodes, edges: baseEdges } = generateNodesAndEdges(latestResult);
+    const { nodes: baseNodes, edges: baseEdges } = generateNodesAndEdges(latestResult);
+    const allNodes = [...baseNodes, ...researchNodes];
+    const allEdges = [...baseEdges, ...scoutEdges];
 
-        // Preserve research edges (those starting with 'scout-')
-        const researchEdges = currentEdges.filter(e => e.id.startsWith('scout-'));
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      allNodes,
+      allEdges,
+      { direction: 'TB', nodeWidth: 320, nodeHeight: 200, rankSep: 120, nodeSep: 100 }
+    );
 
-        const allNodes = [...baseNodes, ...researchNodes];
-        const allEdges = [...baseEdges, ...researchEdges];
-
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-          allNodes, allEdges,
-          { direction: 'TB', nodeWidth: 320, nodeHeight: 200, rankSep: 120, nodeSep: 100 }
-        );
-
-        // Update nodes in the next frame to avoid state update conflict
-        window.requestAnimationFrame(() => {
-          setNodes(layoutedNodes);
-        });
-
-        return layoutedEdges;
-      });
-
-      return currentNodes;
-    });
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
   }, [latestResult, generateNodesAndEdges, setNodes, setEdges]);
 
   const handleAttachToMap = (result: ScoutResult) => {
@@ -275,9 +270,8 @@ const IdeaPage = () => {
     setIsScoutDrawerOpen(false); // Close drawer after attaching
   };
 
-  React.useEffect(() => {
-    if (activeTab === 'map') layoutFromLatest();
-  }, [activeTab, layoutFromLatest]);
+  // Map is built only when user clicks "Generate map" on the Map tab (not on Send or tab switch)
+  const mapIsBuilt = nodes.length > 0;
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden pt-20">
@@ -307,32 +301,48 @@ const IdeaPage = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-white text-sm">🗺️ Idea Map</span>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsScoutDrawerOpen(true)}
-                    className="px-3 py-1 text-xs bg-emerald-700 text-white"
-                  >Scout Market</button>
-                  <button
-                    onClick={layoutFromLatest}
-                    className="px-3 py-1 text-xs bg-indigo-700 text-white"
-                  >Auto Layout</button>
-                </div>
+                {mapIsBuilt && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsScoutDrawerOpen(true)}
+                      className="px-3 py-1 text-xs bg-emerald-700 text-white"
+                    >Scout Market</button>
+                    <button
+                      onClick={layoutFromLatest}
+                      className="px-3 py-1 text-xs bg-indigo-700 text-white"
+                    >Auto Layout</button>
+                  </div>
+                )}
               </div>
-              <div style={{ height: 560 }} className="border border-white/10 bg-black/40 rounded">
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onConnect={onConnect}
-                  nodeTypes={nodeTypes}
-                  fitView
-                  attributionPosition="bottom-left"
-                >
-                  <Controls />
-                  <MiniMap />
-                  <Background />
-                </ReactFlow>
+              <div style={{ height: 560 }} className="border border-white/10 bg-black/40 rounded relative">
+                {!mapIsBuilt ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+                    <p className="text-white/70 text-sm font-mono max-w-md">
+                      Map is generated on demand. Build the idea map from your last response to explore segments, features, risks, and more.
+                    </p>
+                    <button
+                      onClick={layoutFromLatest}
+                      className="px-4 py-2 text-sm font-mono bg-indigo-600 hover:bg-indigo-500 text-white border border-white/20"
+                    >
+                      Generate map
+                    </button>
+                  </div>
+                ) : (
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    attributionPosition="bottom-left"
+                  >
+                    <Controls />
+                    <MiniMap />
+                    <Background />
+                  </ReactFlow>
+                )}
               </div>
             </div>
           )}

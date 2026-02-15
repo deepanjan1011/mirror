@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
-        const { query, nodeLabel, nodeContent, productContext, evidence } = await request.json();
+        const { query, nodeLabel, nodeContent, productContext, evidence, searchOnly } = await request.json();
 
         if (!query || typeof query !== 'string') {
             return NextResponse.json({ error: 'Query is required' }, { status: 400 });
@@ -173,6 +173,11 @@ export async function POST(request: NextRequest) {
             // Curate the top 5 results using LLM (Node-Aware)
             searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '');
             console.log(`Curated down to ${searchResults.length} results`);
+        }
+
+        // When searchOnly is true, return only results (no insight generation) for a faster Search flow
+        if (searchOnly === true) {
+            return NextResponse.json({ results: searchResults });
         }
 
         // 2. Generate Insights with Cohere
