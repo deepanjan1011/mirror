@@ -5,15 +5,17 @@ interface EvidenceDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   selectedNode: NodeData | null;
+  productContext?: string;
 }
 
 type EvidenceChip = { snippet: string; url: string; score: number };
 
-export function EvidenceDrawer({ isOpen, onClose, selectedNode }: EvidenceDrawerProps) {
+export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }: EvidenceDrawerProps) {
   const [query, setQuery] = useState('Why are we different?');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<EvidenceChip[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [insights, setInsights] = useState<{ related_research: string; action_items: string } | null>(null);
 
   const storageKey = useMemo(() => {
     return selectedNode?.nodeId ? `evidence:${selectedNode.nodeId}` : undefined;
@@ -41,15 +43,25 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode }: EvidenceDrawer
     if (!query.trim()) return;
     setIsSearching(true);
     setError(null);
+    setInsights(null); // Clear previous insights
     try {
-      const res = await fetch('/api/scout/search', {
+      const res = await fetch('/api/scout/evidence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, k: 8 }),
+        body: JSON.stringify({
+          query,
+          nodeLabel: selectedNode?.label,
+          nodeContent: selectedNode?.content,
+          productContext
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Search failed');
+
       setResults(data.results || []);
+      if (data.insights) {
+        setInsights(data.insights);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');
     } finally {
@@ -65,7 +77,21 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode }: EvidenceDrawer
     setAttached(next);
     try {
       localStorage.setItem(storageKey, JSON.stringify(next));
-    } catch {}
+    } catch { }
+  };
+
+  const renderMarkdownList = (text: string) => {
+    if (!text) return null;
+    const items = text.split('\n').filter(line => line.trim().length > 0);
+    return (
+      <ul style={{ paddingLeft: '1.2rem', margin: 0 }}>
+        {items.map((item, i) => (
+          <li key={i} style={{ marginBottom: '0.5rem' }}>
+            {item.replace(/^[-*•]\s*/, '')}
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   if (!isOpen) return null;
@@ -319,11 +345,17 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode }: EvidenceDrawer
               backgroundColor: 'rgba(52, 211, 153, 0.1)',
               border: '1px solid rgba(52, 211, 153, 0.2)',
               borderRadius: '0.5rem',
-              color: '#6ee7b7',
+              color: '#d1fae5',
               fontSize: '0.875rem',
-              fontStyle: 'italic'
+              lineHeight: '1.6'
             }}>
-              Research links and references will be populated here.
+              {insights?.related_research ? (
+                renderMarkdownList(insights.related_research)
+              ) : (
+                <span style={{ fontStyle: 'italic', color: '#6ee7b7' }}>
+                  Research insights will appear here after search...
+                </span>
+              )}
             </div>
           </div>
 
@@ -343,11 +375,17 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode }: EvidenceDrawer
               backgroundColor: 'rgba(245, 158, 11, 0.1)',
               border: '1px solid rgba(245, 158, 11, 0.2)',
               borderRadius: '0.5rem',
-              color: '#fbbf24',
+              color: '#fef3c7',
               fontSize: '0.875rem',
-              fontStyle: 'italic'
+              lineHeight: '1.6'
             }}>
-              Actionable insights and next steps will be generated here.
+              {insights?.action_items ? (
+                renderMarkdownList(insights.action_items)
+              ) : (
+                <span style={{ fontStyle: 'italic', color: '#fbbf24' }}>
+                  Actionable next steps will appear here after search...
+                </span>
+              )}
             </div>
           </div>
         </div>

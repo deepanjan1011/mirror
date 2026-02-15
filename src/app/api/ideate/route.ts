@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
     const responseText = await chatCompletion([
       { role: 'user', content: userPrompt }
     ], {
-      model: 'command-r-plus-08-2024',
-      temperature: 0.4,
+      model: 'command-r-08-2024',
+      temperature: 0.3,
     });
 
     // Parse and validate JSON response

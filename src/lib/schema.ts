@@ -3,26 +3,26 @@ import { z } from "zod";
 export const IdeationResponse = z.object({
   summary: z.string().min(1),
   segments: z.array(z.object({
-    name: z.string(),
-    why_it_fits: z.string(),
-    hooks: z.array(z.string()).min(1),
-    kpis: z.array(z.string()).min(1),
-    platform_fit: z.array(z.string()).min(1)
-  })).min(1).max(5),
-  features: z.array(z.string()).min(1).max(10),
+    name: z.string().default("Unknown Segment"),
+    why_it_fits: z.string().optional().default(""),
+    hooks: z.array(z.string()).default([]),
+    kpis: z.array(z.string()).default([]),
+    platform_fit: z.array(z.string()).default([])
+  })).default([]),
+  features: z.array(z.string()).default([]),
   risks: z.array(z.object({
-    risk: z.string(),
-    mitigation: z.string()
-  })).min(1),
+    risk: z.string().default("General Risk"),
+    mitigation: z.string().default("Monitor closely")
+  })).default([]),
   social_fit: z.array(z.object({
-    platform: z.string(),
-    why: z.string()
-  })).min(1),
+    platform: z.string().default("General"),
+    why: z.string().default("")
+  })).default([]),
   improvements_by_segment: z.array(z.object({
-    segment: z.string(),
-    ideas: z.array(z.string()).min(1)
-  })).min(1),
-  followups: z.array(z.string()).min(1).max(3),
+    segment: z.string().default("General"),
+    ideas: z.array(z.string()).default([])
+  })).default([]),
+  followups: z.array(z.string()).default([]),
   // Step 1 addition for auditability (used later by Critic/Refiner)
   assumptions: z.array(z.string()).optional(),
   uncertainty_score: z.number().min(0).max(1).optional()
@@ -89,7 +89,7 @@ export type RefinedResponseT = z.infer<typeof RefinedResponse>;
 export type IdeaDoc = {
   _id?: import("mongodb").ObjectId;
   idea: string;
-  artifacts?: { type: "url"|"pdf"|"image"; name: string; ref: string }[];
+  artifacts?: { type: "url" | "pdf" | "image"; name: string; ref: string }[];
   stage: "advisor"; // Steps 2/3 will add "critic" and "refiner"
   result: IdeationResponseT;
   createdAt: Date;

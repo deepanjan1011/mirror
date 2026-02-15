@@ -514,6 +514,7 @@ const IdeaPage = () => {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         selectedNode={selectedNode}
+        productContext={latestResult?.summary}
       />
       <ScoutDrawer
         isOpen={isScoutDrawerOpen}
