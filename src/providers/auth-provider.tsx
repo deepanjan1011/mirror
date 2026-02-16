@@ -8,12 +8,14 @@ type AuthContextType = {
     user: any | null
     loading: boolean
     signOut: () => Promise<void>
+    refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
     signOut: async () => { },
+    refreshUser: async () => { },
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -31,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         getUser()
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
             setUser(session?.user ?? null)
             setLoading(false)
             if (_event === 'SIGNED_OUT') {
@@ -49,8 +51,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.refresh()
     }
 
+    const refreshUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+    }
+
     return (
-        <AuthContext.Provider value={{ user, loading, signOut }}>
+        <AuthContext.Provider value={{ user, loading, signOut, refreshUser }}>
             {children}
         </AuthContext.Provider>
     )

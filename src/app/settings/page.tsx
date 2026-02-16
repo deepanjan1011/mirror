@@ -1,22 +1,19 @@
 "use client";
 
 import { useAuth } from '@/providers/auth-provider';
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 
 export default function SettingsPage() {
-    const { user, signOut } = useAuth();
+    const { user, signOut, refreshUser } = useAuth();
     const router = useRouter();
-    const [name, setName] = useState(user?.user_metadata?.name || '');
+    const [name, setName] = useState(user?.user_metadata?.name || user?.user_metadata?.full_name || '');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,10 +22,11 @@ export default function SettingsPage() {
 
         try {
             const { error } = await supabase.auth.updateUser({
-                data: { name }
+                data: { name, full_name: name }
             });
 
             if (error) throw error;
+            await refreshUser();
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
         } catch (err: any) {
             setMessage({ type: 'error', text: err.message });
