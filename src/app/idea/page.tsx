@@ -298,7 +298,7 @@ const IdeaPage = () => {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden pt-20">
 
-      <div style={{ height: "1px", backgroundColor: 'white', opacity: 0.1 }} className="w-full mb-4"></div>
+
 
       <main className="relative z-10 max-w-5xl mx-auto px-8 py-10">
         <div className="border border-white/10 bg-white/5 p-4 md:p-6">
@@ -360,14 +360,14 @@ const IdeaPage = () => {
                     fitView
                     attributionPosition="bottom-left"
                   >
-                    <Controls 
+                    <Controls
                       style={{
                         background: 'rgba(0,0,0,0.8)',
                         border: '1px solid rgba(255,255,255,0.2)',
                         borderRadius: '0.5rem'
                       }}
                     />
-                    <MiniMap 
+                    <MiniMap
                       style={{
                         background: 'rgba(0,0,0,0.8)',
                         border: '1px solid rgba(255,255,255,0.2)',

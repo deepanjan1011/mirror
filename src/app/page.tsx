@@ -119,10 +119,7 @@ export default function Landing() {
           <LandingNav />
         </div>
 
-        <div
-          style={{ height: "1px", backgroundColor: "white", opacity: 0.2 }}
-          className="w-full mb-4"
-        ></div>
+
 
         {/* Hero Section */}
         <section
