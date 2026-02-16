@@ -23,7 +23,7 @@ export async function login(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard') // or wherever you want to go
+    redirect('/loading') // Show animation before entering app
 }
 
 export async function signup(formData: FormData) {
@@ -50,5 +50,5 @@ export async function signup(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/')
+    redirect('/loading')
 }

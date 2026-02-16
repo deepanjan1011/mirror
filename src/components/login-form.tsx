@@ -12,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from 'react'
-import { AgentLoading } from "@/components/agent-loading"
 import { login } from "@/app/login/actions"
 import { createClient } from "@/lib/supabase/client"
 
@@ -23,21 +22,13 @@ export function LoginForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [showLoading, setShowLoading] = useState(false)
-
-  const handleLoadingComplete = () => {
-    // Redirect handled by server action or middleware mainly, 
-    // but here we might want to just show the loading state then force reload/redirect
-    window.location.href = '/projects'
-    setShowLoading(false)
-  }
 
   const handleSocialLogin = async (provider: 'google' | 'apple') => {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/projects`
+        redirectTo: `${window.location.origin}/auth/callback?next=/loading`
       }
     })
   }
@@ -56,17 +47,14 @@ export function LoginForm({
       alert(result.error)
       setIsLoading(false)
     } else {
-      // Success - show loading animation then redirect
-      setShowLoading(true)
+      // Success - redirect to loading page
+      window.location.href = '/loading'
     }
   }
 
+
   const handleSignup = () => {
     window.location.href = '/signup'
-  }
-
-  if (showLoading) {
-    return <AgentLoading onComplete={handleLoadingComplete} />
   }
 
   return (

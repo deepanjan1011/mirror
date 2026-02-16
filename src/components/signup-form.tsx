@@ -29,7 +29,7 @@ export function SignUpForm({
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback?next=/loading`
       }
     })
   }
