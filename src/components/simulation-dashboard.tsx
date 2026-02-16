@@ -755,20 +755,55 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         return null;
       }
 
-      const isInNiche = nicheIds.includes(personaData.personaId);
+      // Add small random jitter to prevent stacking (users in same city)
+      // +/- 0.5 degree variation
+      lat += (Math.random() - 0.5) * 1.0;
+      lon += (Math.random() - 0.5) * 1.0;
+
+      const personaIdStr = String(personaData.personaId);
+      const nicheIdsStr = nicheIds.map(id => String(id));
+      const isInNiche = nicheIdsStr.includes(personaIdStr);
+
+      // Show background dots as grey
+      if (!isInNiche) {
+        return {
+          id: personaData.personaId,
+          lat: lat,
+          lon: lon,
+          color: '#444444', // Dark grey for background users (less intrusive)
+          size: 4, // Smaller size
+          persona: persona
+        };
+      }
 
       return {
         id: personaData.personaId,
         lat: lat,
         lon: lon,
-        color: isInNiche ? '#ffffff' : '#bbbbbb', // White for niche, light grey for others to be visible
-        size: isInNiche ? 8 : 4, // Larger for niche personas
+        color: '#ffffff', // White for niche/active (User wants this visible immediately)
+        size: 8, // Larger for niche personas
         persona: persona // Use full persona object, not just personaData
       };
     }).filter(dot => dot !== null);
 
-    console.log(`🌍 [UPDATE-GLOBE] Setting ${dots.length} @fake.com globe dots (${nicheIds.length} in niche)`);
+    console.log(`🌍 [UPDATE-GLOBE] Setting ${dots.length} globe dots (${nicheIds.length} active in niche) - Start WHITE`);
     setGlobeDots(dots);
+  };
+
+  // Helper to turn selected niche dots white when analysis starts
+  const updateGlobeDotsToWhite = (activeIds: number[]) => {
+    const activeIdsStr = activeIds.map(id => String(id));
+    setGlobeDots(prevDots => prevDots.map(dot => {
+      // If this dot is in the active list, turn it white (pulsing)
+      if (activeIdsStr.includes(String(dot.id))) {
+        return {
+          ...dot,
+          color: '#ffffff',
+          size: 8
+        };
+      }
+      return dot;
+    }));
   };
 
   // Find niche users and show them as white dots
@@ -891,6 +926,9 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
       viralCoefficient: 0,
       avgSentiment: 0
     });
+
+    // HIGHLIGHT SELECTED USERS AS WHITE PULSING DOTS STARTING ANALYSIS
+    updateGlobeDotsToWhite(selectedUsers.map((u: any) => (u.user_metadata || u).personaId));
 
     try {
       console.log('🚀 [ANALYSIS] Running sentiment analysis on', selectedUsers.length, 'users');
