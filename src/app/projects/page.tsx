@@ -200,7 +200,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-mono text-white mb-2">
-              Welcome {user?.email},
+              Welcome {user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email},
             </h2>
             <p className="text-sm font-mono text-white/60">
               Manage your AI simulation projects and view insights
