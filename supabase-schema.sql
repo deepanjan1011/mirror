@@ -121,6 +121,10 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE simulation_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ideas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analysis_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE persona_reactions ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for user isolation
 CREATE POLICY "Users can only see their own projects" ON projects
@@ -136,6 +140,24 @@ CREATE POLICY "Users can only see their own simulation reactions" ON simulation_
     )
   );
 
+CREATE POLICY "Users can only see their own analysis sessions" ON analysis_sessions
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Users can only see their own persona reactions" ON persona_reactions
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Users can view their own profile" ON users
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" ON users
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can only see their own ideas" ON ideas
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert their own ideas" ON ideas
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
 -- Personas are public/read-only for everyone
 CREATE POLICY "Personas are viewable by everyone" ON personas
   FOR SELECT USING (true);
@@ -147,7 +169,7 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SET search_path = '';
 
 -- Create triggers for automatic timestamp updates
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -159,11 +181,11 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO users (id, email, name)
+  INSERT INTO public.users (id, email, name)
   VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'name');
   RETURN NEW;
 END;
-$$ language 'plpgsql' SECURITY DEFINER;
+$$ language 'plpgsql' SECURITY DEFINER SET search_path = '';
 
 -- Trigger to automatically create user record on signup
 -- DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
