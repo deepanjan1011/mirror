@@ -4,6 +4,7 @@ import { analyzePost } from '@/lib/ai/cohere';
 import { generatePersonaOpinion } from '@/lib/ai/martian';
 import { generateInsights } from '@/lib/ai/insights';
 import { Database } from '@/types/supabase';
+import { IPersona } from '@/models/Persona';
 
 type SimulationInsert = Database['public']['Tables']['simulations']['Insert'];
 type ReactionInsert = Database['public']['Tables']['simulation_reactions']['Insert'];
@@ -158,24 +159,30 @@ async function processSimulation(simulationId: string, postContent: string, user
 
     for (let i = 0; i < personas.length; i += batchSize) {
       const batch = personas.slice(i, i + batchSize);
-      const batchPromises = batch.map(async (persona) => {
+      const batchPromises = batch.map(async (p: any) => {
         try {
+          // Map DB snake_case to Interface camelCase
+          const persona: IPersona = {
+            ...p,
+            personaId: p.persona_id
+          };
+
           const opinion = await generatePersonaOpinion(
-            persona as any,
+            persona,
             postContent,
             postAnalysis,
             platform
           );
           return {
             simulation_id: simulationId,
-            persona_id: persona.persona_id, // Use numeric ID
+            persona_id: persona.personaId, // Use mapped ID
             attention: opinion.attention,
             reason: opinion.reason,
             comment: opinion.comment,
             sentiment: opinion.sentiment,
           } as ReactionInsert;
         } catch (e) {
-          console.error(`Error persona ${persona.persona_id}`, e);
+          console.error(`Error persona ${p.persona_id}`, e);
           return null;
         }
       });

@@ -1050,8 +1050,9 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   const initiatePersonaCall = (persona: Persona, reaction?: Reaction) => {
     // Store persona context in session storage for the voice agent to access
+    const personaData = persona.user_metadata || persona;
     const personaContext = {
-      persona: persona.user_metadata || persona,
+      persona: { ...personaData, name: persona.name || personaData.name },
       reaction: reaction || {
         attention: 'partial',
         reason: 'Live interaction started by user',
@@ -1861,7 +1862,9 @@ Improved idea:`,
   const buildPersonaSystemPrompt = () => {
     if (!selectedPersona) return '';
 
-    const persona = selectedPersona.user_metadata || selectedPersona;
+    const personaData = selectedPersona.user_metadata || selectedPersona;
+    // EXTRACT NAME CORRECTLY: prefer root name if available (fixing "undefined" name bug)
+    const persona = { ...personaData, name: selectedPersona.name || personaData.name };
     const reaction = reactions.find(r => r.personaId === persona.personaId);
 
     if (!reaction) return '';
@@ -1902,7 +1905,8 @@ Remember: You've already formed your opinion. You're here to discuss it, not to 
     setFeedbackHistory([]);
 
     const systemPrompt = buildPersonaSystemPrompt();
-    const persona = selectedPersona?.user_metadata || selectedPersona;
+    const personaData = selectedPersona?.user_metadata || selectedPersona;
+    const persona = personaData ? { ...personaData, name: selectedPersona?.name || personaData.name } : null;
     const reaction = reactions.find(r => r.personaId === persona?.personaId);
 
     const firstMessage = reaction && persona ?
