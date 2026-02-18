@@ -60,12 +60,12 @@ function LandingNav() {
       <div className="flex items-center gap-2 flex-shrink-0">
         <Image
           src="/logo.png"
-          alt="Tunnel Logo"
+          alt="Mirror Logo"
           width={32}
           height={32}
           className="w-8 h-8"
         />
-        <span className="ml-1 text-lg text-white font-mono">Tunnel</span>
+        <span className="ml-1 text-lg text-white font-mono">Mirror</span>
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
@@ -182,7 +182,7 @@ export default function Landing() {
                   router.push("/projects");
                 }}
               >
-                Explore Tunnel
+                Explore Mirror
                 <ArrowUpRightIcon className="ml-2 h-4 w-4" />
               </Button>
             </motion.div>
@@ -492,15 +492,15 @@ export default function Landing() {
                 <div className="flex items-center gap-2">
                   <Image
                     src="/logo.png"
-                    alt="Tunnel Logo"
+                    alt="Mirror Logo"
                     width={24}
                     height={24}
                     className="w-6 h-6"
                   />
-                  <span className="text-sm text-white font-mono">Tunnel</span>
+                  <span className="text-sm text-white font-mono">Mirror</span>
                 </div>
                 <div className="text-xs text-white/40 font-mono">
-                  © 2025 Tunnel. AI agents for simulated market research.
+                  © 2025 Mirror. AI agents for simulated market research.
                 </div>
                 <div className="flex items-center gap-6 text-xs font-mono">
                   <a href="/login" className="text-white/60 hover:text-white transition">

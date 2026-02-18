@@ -34,12 +34,12 @@ export function Navbar() {
                     <Link href={user ? "/projects" : "/"} className="flex items-center gap-2 group">
                         <Image
                             src="/logo.png"
-                            alt="Tunnel Logo"
+                            alt="Mirror Logo"
                             width={28}
                             height={28}
                             className="w-7 h-7 transition-transform group-hover:scale-110"
                         />
-                        <span className="text-lg font-mono text-white">Tunnel</span>
+                        <span className="text-lg font-mono text-white">Mirror</span>
                     </Link>
 
                     {/* Desktop Navigation */}

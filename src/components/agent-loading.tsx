@@ -9,7 +9,7 @@ interface AgentLoadingProps {
 
 const loadingSteps = [
   "Initializing Agent",
-  "Setting up personas", 
+  "Setting up personas",
   "Getting real-time demographics",
   "Connecting to neural networks",
   "Calibrating behavioral models",
@@ -24,7 +24,7 @@ export function AgentLoading({ onComplete }: AgentLoadingProps) {
   useEffect(() => {
     const totalDuration = 4000; // 4 seconds total
     const stepDuration = totalDuration / loadingSteps.length;
-    
+
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         const newProgress = prev + (100 / (totalDuration / 50)); // Update every 50ms
@@ -79,12 +79,12 @@ export function AgentLoading({ onComplete }: AgentLoadingProps) {
                 <span className="text-white/60 text-xs font-mono">Correct Way</span>
                 <span className="text-white/60 text-xs font-mono">To Launch</span>
               </div>
-              <h1 className="text-white text-2xl font-mono mb-2">Tunnel</h1>
+              <h1 className="text-white text-2xl font-mono mb-2">Mirror</h1>
             </div>
 
             {/* Loading Text */}
             <div className="mb-6">
-              <motion.p 
+              <motion.p
                 key={currentStep}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -98,7 +98,7 @@ export function AgentLoading({ onComplete }: AgentLoadingProps) {
 
             {/* Progress Percentage */}
             <div className="mb-4 flex items-center gap-4">
-              <motion.span 
+              <motion.span
                 className="text-white text-4xl font-mono"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
@@ -122,17 +122,16 @@ export function AgentLoading({ onComplete }: AgentLoadingProps) {
               {Array.from({ length: totalBars }, (_, i) => (
                 <motion.div
                   key={i}
-                  className={`h-8 flex-1 ${
-                    i < filledBars 
-                      ? 'bg-white' 
+                  className={`h-8 flex-1 ${i < filledBars
+                      ? 'bg-white'
                       : 'bg-white/20'
-                  }`}
+                    }`}
                   initial={{ scaleY: 0 }}
-                  animate={{ 
+                  animate={{
                     scaleY: 1,
                     backgroundColor: i < filledBars ? '#ffffff' : 'rgba(255, 255, 255, 0.2)'
                   }}
-                  transition={{ 
+                  transition={{
                     delay: i * 0.02,
                     duration: 0.3,
                     backgroundColor: { duration: 0.2 }

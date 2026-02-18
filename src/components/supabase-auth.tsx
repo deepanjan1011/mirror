@@ -67,12 +67,12 @@ export function AuthForm({ mode, onModeChange }: AuthFormProps) {
       <Card className="w-full max-w-md p-8 bg-gray-900 border-gray-700">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-mono text-white mb-2">
-            {mode === 'login' ? 'Login to Tunnel' : 'Create Account'}
+            {mode === 'login' ? 'Login to Mirror' : 'Create Account'}
           </h1>
           <p className="text-gray-400 text-sm">
-            {mode === 'login' 
-              ? 'Welcome back! Sign in to access your projects.' 
-              : 'Join Tunnel to start testing your ideas.'
+            {mode === 'login'
+              ? 'Welcome back! Sign in to access your projects.'
+              : 'Join Mirror to start testing your ideas.'
             }
           </p>
         </div>
@@ -124,11 +124,10 @@ export function AuthForm({ mode, onModeChange }: AuthFormProps) {
           </div>
 
           {message && (
-            <div className={`text-sm p-3 rounded ${
-              message.includes('Check your email') 
+            <div className={`text-sm p-3 rounded ${message.includes('Check your email')
                 ? 'bg-green-900/20 text-green-400 border border-green-700'
                 : 'bg-red-900/20 text-red-400 border border-red-700'
-            }`}>
+              }`}>
               {message}
             </div>
           )}
@@ -147,8 +146,8 @@ export function AuthForm({ mode, onModeChange }: AuthFormProps) {
             onClick={() => onModeChange(mode === 'login' ? 'signup' : 'login')}
             className="text-sm text-gray-400 hover:text-white font-mono"
           >
-            {mode === 'login' 
-              ? "Don't have an account? Sign up" 
+            {mode === 'login'
+              ? "Don't have an account? Sign up"
               : "Already have an account? Sign in"
             }
           </button>

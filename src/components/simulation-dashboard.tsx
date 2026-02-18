@@ -2232,10 +2232,10 @@ Return only the improved idea, no additional commentary.`,
             <Link href="/projects" className="flex items-center gap-2" aria-label="Go to Projects">
               <img
                 src="/logo.png"
-                alt="Tunnel Logo"
+                alt="Mirror Logo"
                 className="w-10 h-10 object-contain"
               />
-              <span className="text-white font-mono text-lg">Tunnel</span>
+              <span className="text-white font-mono text-lg">Mirror</span>
             </Link>
           </div>
 
