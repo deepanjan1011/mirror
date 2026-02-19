@@ -7,12 +7,41 @@ interface MirrorLogoProps {
     className?: string; // Additional classes
 }
 
+const VortexRings = ({ color, opacity = 1, offset = 0 }: { color: string; opacity?: number; offset?: number }) => (
+    <motion.g style={{ transform: `translateX(${offset}px)` }}>
+        {[0, 1, 2, 3].map((i) => (
+            <motion.circle
+                key={`${color}-${i}`}
+                cx="12"
+                cy="12"
+                r="11"
+                stroke={color}
+                strokeOpacity={opacity}
+                strokeWidth="1" // Thinner base
+                fill="none"
+                initial={{ r: 11, opacity: 0, strokeWidth: 1 }}
+                animate={{
+                    r: [11, 0],
+                    opacity: [0, 1, 0],
+                    strokeWidth: [1, 2, 0] // Thinner max width (was 3)
+                }}
+                transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    delay: i * 0.75,
+                    ease: "circIn"
+                }}
+            />
+        ))}
+    </motion.g>
+);
+
 export function MirrorLogo({ className }: MirrorLogoProps) {
     return (
-        <div className={cn("relative flex items-center justify-center rounded-full overflow-hidden", className)}>
-            {/* Background with Noise Texture */}
-            <div className="absolute inset-0 bg-black rounded-full" />
-            <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        <div className={cn("relative flex items-center justify-center rounded-full overflow-hidden bg-black", className)}>
+
+            {/* Background Texture */}
+            <div className="absolute inset-0 opacity-30 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 
             <motion.svg
                 viewBox="0 0 24 24"
@@ -22,101 +51,41 @@ export function MirrorLogo({ className }: MirrorLogoProps) {
                 whileHover="hover"
                 initial="rest"
             >
-                {/* --- Falling Reflection (The "Waterfall" of Light) --- */}
+                {/* --- COMPOSITED VORTEX LAYERS (The "Glitch") --- */}
+                {/* We render the vortex 3 times with offsets and screen blending to create PHYSICAL Chromatic Aberration */}
+
+                {/* Red Channel - Shifted Left */}
+                <g style={{ mixBlendMode: "screen" }}>
+                    <VortexRings color="#FF0000" opacity={1} offset={-0.5} />
+                </g>
+
+                {/* Blue Channel - Shifted Right */}
+                <g style={{ mixBlendMode: "screen" }}>
+                    <VortexRings color="#0000FF" opacity={1} offset={0.5} />
+                </g>
+
+                {/* Green Channel - Center */}
+                <g style={{ mixBlendMode: "screen" }}>
+                    <VortexRings color="#00FF00" opacity={1} offset={0} />
+                </g>
+
+                {/* --- Falling Light Reflection --- */}
                 <motion.rect
                     x="0"
                     y="-24"
                     width="24"
                     height="24"
                     fill="url(#falling-light)"
-                    opacity="0.4"
+                    opacity="0.5"
                     animate={{ y: [0, 48] }}
                     transition={{
-                        duration: 4,
+                        duration: 3.5,
                         repeat: Infinity,
                         ease: "easeInOut",
-                        repeatDelay: 0.5
+                        repeatDelay: 0.2
                     }}
                     style={{ mixBlendMode: "overlay" }}
                 />
-
-                {/* --- The Infinite Vortex with Chromatic Aberration --- */}
-
-                {/* Cyan Channel (Offset Left) */}
-                <g style={{ mixBlendMode: 'screen' }}>
-                    {[0, 1, 2, 3].map((i) => (
-                        <motion.circle
-                            key={`cyan-${i}`}
-                            cx="11.8" // Slight left offset
-                            cy="12"
-                            r="11"
-                            stroke="cyan"
-                            strokeWidth="0.5"
-                            className="opacity-0"
-                            animate={{
-                                r: [11, 0],
-                                opacity: [0, 0.6, 0],
-                                strokeWidth: [0.5, 1.5, 0]
-                            }}
-                            transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                delay: i * 0.75,
-                                ease: "circIn"
-                            }}
-                        />
-                    ))}
-                </g>
-
-                {/* Magenta Channel (Offset Right) */}
-                <g style={{ mixBlendMode: 'screen' }}>
-                    {[0, 1, 2, 3].map((i) => (
-                        <motion.circle
-                            key={`magenta-${i}`}
-                            cx="12.2" // Slight right offset
-                            cy="12"
-                            r="11"
-                            stroke="magenta"
-                            strokeWidth="0.5"
-                            className="opacity-0"
-                            animate={{
-                                r: [11, 0],
-                                opacity: [0, 0.6, 0],
-                                strokeWidth: [0.5, 1.5, 0]
-                            }}
-                            transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                delay: i * 0.75,
-                                ease: "circIn"
-                            }}
-                        />
-                    ))}
-                </g>
-
-                {/* Main White Channel (Center) */}
-                {[0, 1, 2, 3].map((i) => (
-                    <motion.circle
-                        key={`white-${i}`}
-                        cx="12"
-                        cy="12"
-                        r="11"
-                        stroke="white"
-                        strokeWidth="0.8" // Slightly thicker main line
-                        className="opacity-0"
-                        animate={{
-                            r: [11, 0],
-                            opacity: [0, 0.9, 0],
-                            strokeWidth: [0.8, 1.8, 0]
-                        }}
-                        transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            delay: i * 0.75,
-                            ease: "circIn"
-                        }}
-                    />
-                ))}
 
                 {/* --- The Outer Lens Frame --- */}
                 <motion.circle
@@ -127,17 +96,17 @@ export function MirrorLogo({ className }: MirrorLogoProps) {
                     strokeWidth="2"
                 />
 
-                {/* --- Convex Lens Glare (The "Mirror" Surface) --- */}
+                {/* --- Top Lens Glare --- */}
                 <motion.ellipse
                     cx="12"
                     cy="6"
                     rx="8"
                     ry="4"
                     fill="url(#lens-glare)"
-                    opacity="0.6"
+                    opacity="0.7"
                 />
 
-                {/* --- Rotating "Scanner" Highlight --- */}
+                {/* --- Rotating Scanner --- */}
                 <motion.circle
                     cx="12"
                     cy="12"
@@ -148,15 +117,15 @@ export function MirrorLogo({ className }: MirrorLogoProps) {
                     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* Definitions for Gradients */}
+                {/* Definitions */}
                 <defs>
                     <linearGradient id="frame-gradient" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#ffffff" />
-                        <stop offset="100%" stopColor="#333333" />
+                        <stop offset="0%" stopColor="#888" />
+                        <stop offset="100%" stopColor="#222" />
                     </linearGradient>
 
                     <linearGradient id="lens-glare" x1="12" y1="2" x2="12" y2="10" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="white" stopOpacity="0.8" />
+                        <stop offset="0%" stopColor="white" stopOpacity="0.9" />
                         <stop offset="100%" stopColor="transparent" stopOpacity="0" />
                     </linearGradient>
 
@@ -166,17 +135,12 @@ export function MirrorLogo({ className }: MirrorLogoProps) {
                         <stop offset="100%" stopColor="transparent" />
                     </linearGradient>
 
-                    {/* Falling Light Gradient */}
                     <linearGradient id="falling-light" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="transparent" />
                         <stop offset="40%" stopColor="white" stopOpacity="0.1" />
-                        <stop offset="60%" stopColor="white" stopOpacity="0.5" />
+                        <stop offset="60%" stopColor="white" stopOpacity="0.8" />
                         <stop offset="100%" stopColor="transparent" />
                     </linearGradient>
-
-                    <filter id="noise">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
-                    </filter>
                 </defs>
 
             </motion.svg>
