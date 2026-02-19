@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
+import { MirrorLogo } from "@/components/ui/mirror-logo";
 import { TextAnimate } from "@/components/ui/text-animate";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -58,13 +59,9 @@ function LandingNav() {
     <nav className="relative z-10 flex items-center py-6 px-8 w-full mx-auto bg-black/50">
       {/* Logo */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <Image
-          src="/logo.png"
-          alt="Mirror Logo"
-          width={32}
-          height={32}
-          className="w-8 h-8"
-        />
+        <div className="w-8 h-8">
+          <MirrorLogo />
+        </div>
         <span className="ml-1 text-lg text-white font-mono">Mirror</span>
       </div>
 
@@ -490,13 +487,9 @@ export default function Landing() {
             <div className="max-w-6xl mx-auto px-8">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <Image
-                    src="/logo.png"
-                    alt="Mirror Logo"
-                    width={24}
-                    height={24}
-                    className="w-6 h-6"
-                  />
+                  <div className="w-6 h-6">
+                    <MirrorLogo />
+                  </div>
                   <span className="text-sm text-white font-mono">Mirror</span>
                 </div>
                 <div className="text-xs text-white/40 font-mono">

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Menu, X, Home, FolderOpen, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { MirrorLogo } from "@/components/ui/mirror-logo";
 
 export function Navbar() {
     const pathname = usePathname();
@@ -32,13 +33,9 @@ export function Navbar() {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <Link href={user ? "/projects" : "/"} className="flex items-center gap-2 group">
-                        <Image
-                            src="/logo.png"
-                            alt="Mirror Logo"
-                            width={28}
-                            height={28}
-                            className="w-7 h-7 transition-transform group-hover:scale-110"
-                        />
+                        <div className="w-7 h-7 transition-transform group-hover:scale-110">
+                            <MirrorLogo />
+                        </div>
                         <span className="text-lg font-mono text-white">Mirror</span>
                     </Link>
 

@@ -9,6 +9,7 @@ import { ThreeJSGlobeWithDots } from "@/components/threejs-globe-with-dots";
 import useSessionStore from '@/stores/sessionStore';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { MirrorLogo } from "@/components/ui/mirror-logo";
 import Vapi from '@vapi-ai/web';
 import {
   ChevronDown,
@@ -2230,11 +2231,9 @@ Return only the improved idea, no additional commentary.`,
         <div className="w-64 border-r border-white/10 p-4 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <Link href="/projects" className="flex items-center gap-2" aria-label="Go to Projects">
-              <img
-                src="/logo.png"
-                alt="Mirror Logo"
-                className="w-10 h-10 object-contain"
-              />
+              <div className="w-10 h-10">
+                <MirrorLogo />
+              </div>
               <span className="text-white font-mono text-lg">Mirror</span>
             </Link>
           </div>
