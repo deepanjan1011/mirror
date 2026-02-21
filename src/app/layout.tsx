@@ -17,9 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Mirror",
   description: "AI agents for simulated market research",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

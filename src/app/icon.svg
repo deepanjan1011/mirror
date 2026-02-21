@@ -1,0 +1,25 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Solid Black Background -->
+    <rect width="32" height="32" rx="16" fill="#000000" />
+    
+    <!-- Red Channel - Shifted Left strongly -->
+    <g style="mix-blend-mode: screen; transform: translateX(-1.5px)">
+        <circle cx="16" cy="16" r="11" stroke="#FF0044" stroke-width="4" fill="none" opacity="1"/>
+    </g>
+
+    <!-- Blue Channel - Shifted Right strongly -->
+    <g style="mix-blend-mode: screen; transform: translateX(1.5px)">
+        <circle cx="16" cy="16" r="11" stroke="#00AAFF" stroke-width="4" fill="none" opacity="1"/>
+    </g>
+
+    <!-- Green Channel - Center -->
+    <g style="mix-blend-mode: screen; transform: translateX(0px)">
+        <circle cx="16" cy="16" r="11" stroke="#00FF00" stroke-width="4" fill="none" opacity="1"/>
+    </g>
+
+    <!-- A brighter, solid bright white inner ring to make it pop -->
+    <circle cx="16" cy="16" r="11" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.9" />
+
+    <!-- Pure white lens glare (solid instead of gradient so it shows at 16px) -->
+    <path d="M 8 10 Q 16 2 24 10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" fill="none" />
+</svg>
