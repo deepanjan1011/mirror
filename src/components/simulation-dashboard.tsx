@@ -142,8 +142,8 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   // Auto-save timer
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [postContent, setPostContent] = useState('');
-  const [currentPost, setCurrentPost] = useState('');
+  const [postContent, setPostContent] = useState(searchParams.get('idea') || '');
+  const [currentPost, setCurrentPost] = useState(searchParams.get('idea') || '');
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [reactions, setReactions] = useState<any[]>([]);
   const [metrics, setMetrics] = useState({

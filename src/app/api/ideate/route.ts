@@ -65,62 +65,38 @@ export async function POST(request: NextRequest) {
       let cleaned = str.trim();
       console.log('Raw Cohere Response:', cleaned);
 
-      // 1. Remove markdown code blocks
+      // 1. Remove markdown code blocks if present
       if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/```$/, '');
+        // Strip out ```json or ``` at the start
+        cleaned = cleaned.replace(/^```(?:json)?\s*/i, '');
+        // Strip out ``` at the end
+        cleaned = cleaned.replace(/\s*```$/i, '');
       }
 
-      // 2. Remove any text before the first '{' and after the last '}'
+      // 2. Fallback: Extract everything between the first '{' and last '}'
       const firstBrace = cleaned.indexOf('{');
       const lastBrace = cleaned.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace !== -1) {
         cleaned = cleaned.substring(firstBrace, lastBrace + 1);
       }
 
-      // 3. Escape control characters (newlines, tabs, etc.) ONLY within string values
-      // This is a simplified state machine to detect if we are inside a string
-      let result = '';
-      let insideString = false;
-      let escape = false;
+      // 3. Simple cleanup for common LLM JSON generation quirks
+      // Escape unescaped newlines and tabs within the JSON string
+      cleaned = cleaned
+        .replace(/([{,]\s*")([^"]+)("\s*[:])/g, (match, p1, p2, p3) => {
+          // Keep keys intact
+          return p1 + p2 + p3;
+        })
+        .replace(/:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match, p1) => {
+          // Escape newlines and tabs inside string values
+          const escapedValue = p1
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+          return `: "${escapedValue}"`;
+        });
 
-      for (let i = 0; i < cleaned.length; i++) {
-        const char = cleaned[i];
-
-        if (insideString) {
-          if (escape) {
-            // Was escaped, just add char and reset escape
-            result += char;
-            escape = false;
-          } else {
-            if (char === '\\') {
-              escape = true;
-              result += char;
-            } else if (char === '"') {
-              insideString = false;
-              result += char;
-            } else if (char === '\n') {
-              // This is an unescaped newline INSIDE a string. Escape it.
-              result += '\\n';
-            } else if (char === '\r') {
-              // This is an unescaped carriage return INSIDE a string. Escape it.
-              result += '\\r';
-            } else if (char === '\t') {
-              // This is an unescaped tab INSIDE a string. Escape it.
-              result += '\\t';
-            } else {
-              result += char;
-            }
-          }
-        } else {
-          // Not inside string
-          if (char === '"') {
-            insideString = true;
-          }
-          result += char;
-        }
-      }
-
-      return result;
+      return cleaned;
     };
 
     // Parse and validate JSON response
