@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
         .insert({
           id: authData.user.id,
           email: authData.user.email!,
-          name: authData.user.user_metadata?.name || authData.user.email!.split('@')[0]
+          name: authData.user.user_metadata?.custom_name || authData.user.user_metadata?.name || authData.user.email!.split('@')[0]
         })
         .select()
         .single();
 
       if (createError) {
         console.error('💥 Error creating user record:', createError);
-        
+
         // If user already exists (duplicate key error), fetch them instead
         if (createError.code === '23505') {
           console.log('⚠️ User already exists, fetching existing record');
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
             .select('*')
             .eq('email', authData.user.email!)
             .single();
-          
+
           if (!fetchError && existingUser) {
             user = existingUser;
             console.log('✅ Found existing user record:', user.email);
