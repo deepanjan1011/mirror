@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(request: NextRequest) {
+import { generateText } from '@/lib/cohere'; export async function POST(request: NextRequest) {
   console.log(' [EXTRACT-NICHE] API endpoint called');
 
   try {
@@ -16,8 +15,8 @@ export async function POST(request: NextRequest) {
 
     console.log(' [EXTRACT-NICHE] Processing idea:', idea.substring(0, 100) + '...');
 
-    // Extract niche/industry from the idea using simple keyword analysis
-    const niche = extractNicheFromIdea(idea);
+    // Extract niche/industry from the idea dynamically using Cohere
+    const niche = await extractNicheFromIdea(idea);
 
     console.log(' [EXTRACT-NICHE] Successfully identified niche:', niche);
 
@@ -37,114 +36,35 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function extractNicheFromIdea(idea: string): string {
-  console.log(' [EXTRACT-NICHE] Starting niche analysis for idea length:', idea.length);
+async function extractNicheFromIdea(idea: string): Promise<string> {
+  console.log(' [EXTRACT-NICHE] Starting AI niche analysis for idea length:', idea.length);
 
-  const lowerIdea = idea.toLowerCase();
-  console.log(' [EXTRACT-NICHE] Lowercase idea:', lowerIdea);
+  try {
+    const prompt = `You are an expert business analyst and market researcher. 
+Given the following product or business idea, identify the main industry or niche it belongs to.
+Your response must be ONLY the category name, ideally 2-4 words, capitalized (e.g., "Home Services Tech", "Space Technology", "B2B SaaS", "Pet Care", "Gaming & Entertainment"). 
+Do not include any other text or explanation.
 
-  // Define niche patterns with keywords
-  const niches = [
-    {
-      name: "Electric Vehicles & Automotive",
-      keywords: ["electric", "ev", "car", "vehicle", "automotive", "tesla", "charging", "battery", "hybrid", "autonomous"]
-    },
-    {
-      name: "Health & Fitness",
-      keywords: ["health", "fitness", "workout", "exercise", "nutrition", "wellness", "medical", "healthcare", "diet", "gym"]
-    },
-    {
-      name: "Financial Technology",
-      keywords: ["fintech", "finance", "banking", "payment", "crypto", "blockchain", "investment", "trading", "money", "wallet"]
-    },
-    {
-      name: "E-commerce & Retail",
-      keywords: ["shop", "store", "retail", "ecommerce", "marketplace", "buy", "sell", "product", "commerce", "shopping"]
-    },
-    {
-      name: "Education Technology",
-      keywords: ["education", "learning", "school", "course", "teach", "student", "edtech", "training", "skill", "knowledge"]
-    },
-    {
-      name: "Food & Beverage",
-      keywords: ["food", "restaurant", "cooking", "recipe", "meal", "delivery", "kitchen", "dining", "beverage", "nutrition"]
-    },
-    {
-      name: "Real Estate & Property",
-      keywords: ["real estate", "property", "house", "home", "rent", "buy", "apartment", "housing", "mortgage", "landlord"]
-    },
-    {
-      name: "Travel & Tourism",
-      keywords: ["travel", "trip", "vacation", "hotel", "flight", "booking", "tourism", "destination", "adventure", "explore"]
-    },
-    {
-      name: "Social Media & Communication",
-      keywords: ["social", "chat", "message", "communication", "network", "connect", "share", "post", "community", "platform"]
-    },
-    {
-      name: "Gaming & Entertainment",
-      keywords: ["game", "gaming", "entertainment", "video", "stream", "play", "fun", "movie", "music", "content", "anime", "manga", "otaku"]
-    },
-    {
-      name: "Productivity & Business Tools",
-      keywords: ["productivity", "business", "tool", "software", "app", "work", "office", "management", "organization", "efficiency"]
-    },
-    {
-      name: "Sustainability & Environment",
-      keywords: ["sustainable", "environment", "green", "eco", "climate", "renewable", "carbon", "pollution", "recycling", "clean"]
-    },
-    {
-      name: "Fashion & Beauty",
-      keywords: ["fashion", "beauty", "clothing", "style", "makeup", "skincare", "apparel", "design", "trend", "cosmetics"]
-    },
-    {
-      name: "Home & Garden",
-      keywords: ["home", "garden", "house", "furniture", "decor", "interior", "outdoor", "lawn", "plant", "renovation"]
-    },
-    {
-      name: "Pet Care & Animals",
-      keywords: ["pet", "dog", "cat", "animal", "veterinary", "care", "training", "grooming", "rescue", "shelter", "adoption"]
-    }
-  ];
+Idea: "${idea}"
+Niche/Industry:`;
 
-  // Score each niche based on keyword matches
-  let bestMatch = { name: "General Technology", score: 0 };
+    const responseText = await generateText(prompt, {
+      temperature: 0.1, // Low temperature for consistent classification
+      maxTokens: 10,
+    });
 
-  console.log(' [EXTRACT-NICHE] Analyzing', niches.length, 'potential niches...');
+    const niche = responseText.trim();
+    console.log(' [EXTRACT-NICHE] AI successfully determined niche:', niche);
 
-  // Generic keywords that should have lower weight
-  const genericKeywords = ["tool", "app", "software", "business", "work", "management", "platform", "service"];
-
-  for (const niche of niches) {
-    let score = 0;
-    const matchedKeywords: string[] = [];
-
-    for (const keyword of niche.keywords) {
-      // Use regex with word boundaries to avoid partial matches (e.g. 'car' in 'care' or 'anime')
-      const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'i');
-
-      if (keywordRegex.test(lowerIdea)) {
-        // Give lower weight to generic keywords
-        const keywordWeight = genericKeywords.includes(keyword) ? 0.3 : 1.0;
-        score += keywordWeight;
-        matchedKeywords.push(keyword);
-
-        // Give significant bonus for domain-specific terms
-        if (["dog", "cat", "pet", "animal", "rescue", "shelter"].includes(keyword)) {
-          score += 2; // Strong bonus for animal-related terms
-        }
-      }
+    // Fallback if the AI gives a strangely long response
+    if (niche.length > 50) {
+      console.warn(' [EXTRACT-NICHE] AI response was too long, using generic fallback');
+      return "Technology & Innovation";
     }
 
-    if (score > 0) {
-      console.log(` [EXTRACT-NICHE] ${niche.name}: score=${score.toFixed(2)}, keywords=[${matchedKeywords.join(', ')}]`);
-    }
-
-    if (score > bestMatch.score) {
-      bestMatch = { name: niche.name, score };
-    }
+    return niche;
+  } catch (error) {
+    console.error(' [EXTRACT-NICHE] AI extraction failed, using generic fallback:', error);
+    return "Technology & Innovation";
   }
-
-  console.log(' [EXTRACT-NICHE] Best match:', bestMatch);
-  return bestMatch.name;
 }
