@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   console.log(' [EXTRACT-NICHE] API endpoint called');
-  
+
   try {
     const body = await request.json();
     console.log(' [EXTRACT-NICHE] Request body:', body);
-    
+
     const { idea } = body;
 
     if (!idea || typeof idea !== 'string') {
@@ -15,22 +15,22 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(' [EXTRACT-NICHE] Processing idea:', idea.substring(0, 100) + '...');
-    
+
     // Extract niche/industry from the idea using simple keyword analysis
     const niche = extractNicheFromIdea(idea);
-    
+
     console.log(' [EXTRACT-NICHE] Successfully identified niche:', niche);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       niche,
-      message: `Identified niche: ${niche}` 
+      message: `Identified niche: ${niche}`
     });
 
   } catch (error) {
     console.error(' [EXTRACT-NICHE] Error occurred:', error);
     console.error(' [EXTRACT-NICHE] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to extract niche from idea',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
 
 function extractNicheFromIdea(idea: string): string {
   console.log(' [EXTRACT-NICHE] Starting niche analysis for idea length:', idea.length);
-  
+
   const lowerIdea = idea.toLowerCase();
   console.log(' [EXTRACT-NICHE] Lowercase idea:', lowerIdea);
-  
+
   // Define niche patterns with keywords
   const niches = [
     {
@@ -83,7 +83,7 @@ function extractNicheFromIdea(idea: string): string {
     },
     {
       name: "Gaming & Entertainment",
-      keywords: ["game", "gaming", "entertainment", "video", "stream", "play", "fun", "movie", "music", "content"]
+      keywords: ["game", "gaming", "entertainment", "video", "stream", "play", "fun", "movie", "music", "content", "anime", "manga", "otaku"]
     },
     {
       name: "Productivity & Business Tools",
@@ -109,39 +109,37 @@ function extractNicheFromIdea(idea: string): string {
 
   // Score each niche based on keyword matches
   let bestMatch = { name: "General Technology", score: 0 };
-  
+
   console.log(' [EXTRACT-NICHE] Analyzing', niches.length, 'potential niches...');
-  
+
   // Generic keywords that should have lower weight
   const genericKeywords = ["tool", "app", "software", "business", "work", "management", "platform", "service"];
-  
+
   for (const niche of niches) {
     let score = 0;
     const matchedKeywords: string[] = [];
-    
+
     for (const keyword of niche.keywords) {
-      if (lowerIdea.includes(keyword)) {
+      // Use regex with word boundaries to avoid partial matches (e.g. 'car' in 'care' or 'anime')
+      const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'i');
+
+      if (keywordRegex.test(lowerIdea)) {
         // Give lower weight to generic keywords
         const keywordWeight = genericKeywords.includes(keyword) ? 0.3 : 1.0;
         score += keywordWeight;
         matchedKeywords.push(keyword);
-        
-        // Give extra weight to exact matches (but also consider if it's generic)
-        if (lowerIdea.includes(` ${keyword} `) || lowerIdea.startsWith(keyword) || lowerIdea.endsWith(keyword)) {
-          score += (0.5 * keywordWeight);
-        }
-        
+
         // Give significant bonus for domain-specific terms
         if (["dog", "cat", "pet", "animal", "rescue", "shelter"].includes(keyword)) {
           score += 2; // Strong bonus for animal-related terms
         }
       }
     }
-    
+
     if (score > 0) {
       console.log(` [EXTRACT-NICHE] ${niche.name}: score=${score.toFixed(2)}, keywords=[${matchedKeywords.join(', ')}]`);
     }
-    
+
     if (score > bestMatch.score) {
       bestMatch = { name: niche.name, score };
     }
