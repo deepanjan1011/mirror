@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ThreeJSGlobeWithDots } from "@/components/threejs-globe-with-dots";
+import { SessionSidebar } from "@/components/session-sidebar";
 import useSessionStore from '@/stores/sessionStore';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -2228,119 +2229,16 @@ Return only the improved idea, no additional commentary.`,
       `}</style>
       <div className="h-screen bg-black text-white font-mono flex overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-64 border-r border-white/10 p-4 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/projects" className="flex items-center gap-2" aria-label="Go to Projects">
-              <div className="w-10 h-10">
-                <MirrorLogo />
-              </div>
-              <span className="text-white font-mono text-lg">Mirror</span>
-            </Link>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.location.href = '/projects'}
-            className="font-mono text-white/80 hover:text-white hover:bg-white/10 mb-6 justify-start"
-          >
-            ← Projects View
-          </Button>
-
-
-          <Button
-            onClick={handleCreateNewTest}
-            disabled={isSimulating}
-            className="mb-6 bg-white/10 text-white hover:bg-white/20 border border-white/20"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Session
-          </Button>
-
-          {/* Analysis Sessions */}
-          {projectId && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-white/60">Analysis Sessions</span>
-                {hasUnsavedChanges && (
-                  <div className="flex items-center text-amber-400 text-xs">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Unsaved
-                  </div>
-                )}
-                {isSaving && (
-                  <div className="flex items-center text-blue-400 text-xs">
-                    <Save className="h-3 w-3 mr-1 animate-spin" />
-                    Saving...
-                  </div>
-                )}
-              </div>
-
-              {/* Current Session */}
-              {currentSession && (
-                <div className="mb-3 p-2 bg-white/10 border border-white/20 rounded text-xs">
-                  <div className="text-white/60 mb-1">Current:</div>
-                  <div className="text-white/90 truncate">{currentSession.sessionName}</div>
-                </div>
-              )}
-
-              {/* Session List */}
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                {sessions.map((session) => (
-                  <div
-                    key={session._id}
-                    className={`group relative rounded transition-colors ${currentSession?._id === session._id
-                      ? 'bg-white/20'
-                      : 'hover:bg-white/5'
-                      }`}
-                  >
-                    <button
-                      onClick={() => handleSessionSelect(session._id)}
-                      className="w-full text-left p-2 text-xs pr-8"
-                    >
-                      <div className={`truncate ${currentSession?._id === session._id ? 'text-white' : 'text-white/70'
-                        }`}>
-                        {session.sessionName || 'Untitled Session'}
-                      </div>
-                      <div className="text-white/40 text-xs mt-1">
-                        {new Date(session.createdAt).toLocaleDateString()}
-                      </div>
-                    </button>
-
-                    {/* Delete Button */}
-                    <button
-                      onClick={(e) => handleDeleteSession(session._id, e)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
-                      title="Delete session"
-                    >
-                      <Trash2 className="h-3 w-3 text-red-400 hover:text-red-300" />
-                    </button>
-                  </div>
-                ))}
-                {sessions.length === 0 && (
-                  <div className="text-white/40 text-xs text-center py-2">
-                    No sessions yet
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-auto space-y-3">
-            <div className="text-xs text-white/60 mb-2">
-              {selectedUsers.length > 0 ? `${selectedUsers.length} users selected` : `${allUsers.length} Auth0 users loaded`}
-            </div>
-
-            <div className="text-xs text-white/60 mb-3">
-              {currentPost ? `Analysis: ${currentPost.substring(0, 30)}...` : 'No analysis running'}
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              {/* <span className="text-white/60">Credits: {credits}</span> */}
-              <HelpCircle className="h-3 w-3 text-white/40" />
-            </div>
-
-          </div>
-        </div>
+        {projectId && (
+          <SessionSidebar
+            projectId={projectId}
+            isSimulating={isSimulating}
+            selectedUsersCount={selectedUsers.length}
+            allUsersCount={allUsers.length}
+            currentPost={currentPost}
+            onSessionSelect={handleSessionSelect}
+          />
+        )}
 
         {/* Main Content Area */}
         <div className="flex-1 relative flex flex-col h-full overflow-hidden w-full">
