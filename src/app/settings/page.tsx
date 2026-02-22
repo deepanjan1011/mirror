@@ -9,7 +9,7 @@ import { LogOut } from 'lucide-react';
 export default function SettingsPage() {
     const { user, signOut, refreshUser } = useAuth();
     const router = useRouter();
-    const [name, setName] = useState(user?.user_metadata?.name || user?.user_metadata?.full_name || '');
+    const [name, setName] = useState(user?.user_metadata?.custom_name || user?.user_metadata?.name || user?.user_metadata?.full_name || '');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -22,7 +22,7 @@ export default function SettingsPage() {
 
         try {
             const { error } = await supabase.auth.updateUser({
-                data: { name, full_name: name }
+                data: { custom_name: name, name, full_name: name }
             });
 
             if (error) throw error;

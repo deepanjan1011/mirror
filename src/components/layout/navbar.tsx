@@ -76,7 +76,7 @@ export function Navbar() {
                                 )}
                             >
                                 <span className="text-xs max-w-[180px] truncate">
-                                    {user.user_metadata?.full_name || user.user_metadata?.name || user.email}
+                                    {user.user_metadata?.custom_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email}
                                 </span>
                             </Link>
                         ) : (
@@ -139,7 +139,7 @@ export function Navbar() {
                                     pathname === "/settings" ? "text-white" : "text-white/60"
                                 )}
                             >
-                                {user.user_metadata?.full_name || user.user_metadata?.name || user.email}
+                                {user.user_metadata?.custom_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email}
                             </Link>
                         ) : (
                             <div className="space-y-2">
