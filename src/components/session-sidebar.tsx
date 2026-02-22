@@ -91,7 +91,7 @@ export function SessionSidebar({
     try {
       const newSession = await createSession(
         projectId,
-        'New analysis session...',
+        'Describe what you want to analyze...',
         `New Session - ${new Date().toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',

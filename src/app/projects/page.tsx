@@ -34,6 +34,35 @@ interface Project {
   lastSimulation?: string;
 }
 
+const getProjectProgress = (simulationCount: number) => {
+  if (simulationCount === 0) {
+    // Phase 1: Idea Phase
+    return {
+      phase: 1,
+      percentage: 15, // Base progress for Idea
+      bars: 6, // 15% of 40 bars = 6
+    };
+  } else if (simulationCount < 5) {
+    // Phase 2: Project Phase (1 to 4 simulations)
+    // Percentage scales with simulations from 44% to 71%
+    const percentage = 35 + (simulationCount / 5) * 45;
+    return {
+      phase: 2,
+      percentage: Math.floor(percentage),
+      bars: Math.floor((percentage / 100) * 40),
+    };
+  } else {
+    // Phase 3: Global Deploy (5 or more simulations)
+    // Caps at 100%
+    const percentage = Math.min(100, 85 + (simulationCount - 5) * 5);
+    return {
+      phase: 3,
+      percentage: Math.floor(percentage),
+      bars: Math.floor((percentage / 100) * 40),
+    };
+  }
+};
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -325,138 +354,130 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
-              <motion.div
-                key={project._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="h-full"
-              >
-                <Card
-                  className="bg-black/40 border-white/20 hover:text-white hover:border-white/40 transition-all cursor-pointer group h-full flex flex-col"
-                  onClick={() => openProject(project._id)}
+            {projects.map((project, index) => {
+              const progress = getProjectProgress(project.simulationCount);
+              return (
+                <motion.div
+                  key={project._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  className="h-full"
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="px-2 py-1 bg-white/10 border border-white/20 text-xs font-mono text-white/80">
-                            simulation
-                          </div>
-                          <div className="px-2 py-1 bg-white/10 border border-white/20 text-xs font-mono text-white/80">
-                            ai-powered
-                          </div>
-                        </div>
-                        <CardTitle className="font-mono text-white transition-colors mb-2">
-                          {project.name}
-                        </CardTitle>
-                        {project.description && (
-                          <CardDescription className="font-mono text-white/60 text-sm">
-                            {project.description}
-                          </CardDescription>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs font-mono text-white/40">
-                          <Calendar className="w-3 h-3 inline mr-1" />
-                          {formatDate(project.createdAt)}
-                        </div>
-                        <button
-                          onClick={(e) => handleDeleteClick(e, project)}
-                          disabled={deletingProjectId === project._id}
-                          className="text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
-                          title="Delete project"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex flex-col">
-                    <div className="space-y-4 flex-1">
-                      {/* Metrics Section */}
-                      <div className="space-y-3">
-                        <div className="text-sm font-mono text-white/80">
-                          You are on track to reach engagement goals.
-                        </div>
-
-                        {/* Success Rate */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-2xl font-mono text-white">
-                              {project.simulationCount > 0
-                                ? Math.floor(65 + Math.random() * 25)
-                                : 0}
-                              %
-                            </span>
-                            <div className="flex items-center gap-1 px-2 py-1 bg-white/10 border border-white/20 text-xs font-mono text-white/80">
-                              Phase{" "}
-                              {project.simulationCount > 0
-                                ? Math.floor(1 + Math.random() * 3)
-                                : 1}
+                  <Card
+                    className="bg-black/40 border-white/20 hover:text-white hover:border-white/40 transition-all cursor-pointer group h-full flex flex-col"
+                    onClick={() => openProject(project._id)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="px-2 py-1 bg-white/10 border border-white/20 text-xs font-mono text-white/80">
+                              simulation
+                            </div>
+                            <div className="px-2 py-1 bg-white/10 border border-white/20 text-xs font-mono text-white/80">
+                              ai-powered
                             </div>
                           </div>
+                          <CardTitle className="font-mono text-white transition-colors mb-2">
+                            {project.name}
+                          </CardTitle>
+                          {project.description && (
+                            <CardDescription className="font-mono text-white/60 text-sm">
+                              {project.description}
+                            </CardDescription>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-mono text-white/40">
+                            <Calendar className="w-3 h-3 inline mr-1" />
+                            {formatDate(project.createdAt)}
+                          </div>
+                          <button
+                            onClick={(e) => handleDeleteClick(e, project)}
+                            disabled={deletingProjectId === project._id}
+                            className="text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                            title="Delete project"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col">
+                      <div className="space-y-4 flex-1">
+                        {/* Metrics Section */}
+                        <div className="space-y-3">
+                          <div className="text-sm font-mono text-white/80">
+                            You are on track to reach engagement goals.
+                          </div>
 
-                          {/* Progress Bar */}
-                          <div className="space-y-1">
-                            <div className="flex gap-0.5">
-                              {Array.from({ length: 40 }, (_, i) => {
-                                // Show some initial progress even for new projects (5-8 bars)
-                                // For existing projects, show more progress (15-25 bars)
-                                const baseProgress =
-                                  project.simulationCount > 0
-                                    ? 15 + Math.floor(Math.random() * 10)
-                                    : 5 + Math.floor(Math.random() * 4);
-                                const isActive = i < baseProgress;
-                                return (
-                                  <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, scaleY: 0 }}
-                                    animate={{ opacity: 1, scaleY: 1 }}
-                                    transition={{
-                                      duration: 0.3,
-                                      delay: index * 0.1 + i * 0.02,
-                                    }}
-                                    className={`h-6 w-2 ${isActive
-                                      ? "bg-white border border-white/30"
-                                      : "bg-white/10 border border-white/20"
-                                      }`}
-                                  />
-                                );
-                              })}
+                          {/* Success Rate */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-2xl font-mono text-white">
+                                {progress.percentage}%
+                              </span>
+                              <div className="flex items-center gap-1 px-2 py-1 bg-white/10 border border-white/20 text-xs font-mono text-white/80">
+                                Phase {progress.phase}
+                              </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="space-y-1">
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: 40 }, (_, i) => {
+                                  const isActive = i < progress.bars;
+                                  return (
+                                    <motion.div
+                                      key={i}
+                                      initial={{ opacity: 0, scaleY: 0 }}
+                                      animate={{ opacity: 1, scaleY: 1 }}
+                                      transition={{
+                                        duration: 0.3,
+                                        delay: index * 0.1 + i * 0.02,
+                                      }}
+                                      className={`h-6 w-2 ${isActive
+                                        ? "bg-white border border-white/30"
+                                        : "bg-white/10 border border-white/20"
+                                        }`}
+                                    />
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Stats Row */}
-                      <div className="flex items-center justify-between text-xs font-mono border-t border-white/10 pt-3 mt-auto">
-                        <div className="flex items-center gap-2 text-white/60">
-                          <Activity className="w-3 h-3" />
-                          <span>{project.simulationCount} simulations</span>
-                        </div>
-                        {project.lastSimulation && (
-                          <div className="text-white/50">
-                            Last: {formatDate(project.lastSimulation)}
+                        {/* Stats Row */}
+                        <div className="flex items-center justify-between text-xs font-mono border-t border-white/10 pt-3 mt-auto">
+                          <div className="flex items-center gap-2 text-white/60">
+                            <Activity className="w-3 h-3" />
+                            <span>{project.simulationCount} simulations</span>
                           </div>
-                        )}
-                      </div>
+                          {project.lastSimulation && (
+                            <div className="text-white/50">
+                              Last: {formatDate(project.lastSimulation)}
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full font-mono text-black hover:text-white hover:bg-white/10 bg-white/90 group-hover:bg-white/5"
-                        >
-                          Open Project →
-                        </Button>
+                        <div className="pt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full font-mono text-black hover:text-white hover:bg-white/10 bg-white/90 group-hover:bg-white/5"
+                          >
+                            Open Project →
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            }
+            )}
           </div>
         )}
       </main>
