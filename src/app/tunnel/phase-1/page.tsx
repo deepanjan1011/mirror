@@ -664,6 +664,152 @@ export default function Phase1Page() {
                   </ul>
                 </div>
 
+                {/* Core Value */}
+                {result.core_value && (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>Core Value Proposition</h2>
+                    <p style={{ color: '#d1d5db', lineHeight: '1.625' }}>{result.core_value}</p>
+                  </div>
+                )}
+
+                {/* SWOT Analysis */}
+                {result.swot && (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>SWOT Analysis</h2>
+                    <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                      <div style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '0.75rem', padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#6ee7b7', marginBottom: '0.5rem' }}>Strengths</h3>
+                        <ul style={{ color: '#d1d5db', paddingLeft: '1.25rem' }}>
+                          {result.swot.strengths.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                      <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '0.75rem', padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#fca5a5', marginBottom: '0.5rem' }}>Weaknesses</h3>
+                        <ul style={{ color: '#d1d5db', paddingLeft: '1.25rem' }}>
+                          {result.swot.weaknesses.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                      <div style={{ backgroundColor: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.2)', borderRadius: '0.75rem', padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#93c5fd', marginBottom: '0.5rem' }}>Opportunities</h3>
+                        <ul style={{ color: '#d1d5db', paddingLeft: '1.25rem' }}>
+                          {result.swot.opportunities.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                      <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '0.75rem', padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#fcd34d', marginBottom: '0.5rem' }}>Threats</h3>
+                        <ul style={{ color: '#d1d5db', paddingLeft: '1.25rem' }}>
+                          {result.swot.threats.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Competitors */}
+                {result.competitors && result.competitors.length > 0 && (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>Competitor Analysis</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {result.competitors.map((comp, idx) => (
+                        <div key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '1rem' }}>
+                          <p style={{ color: 'white', marginBottom: '0.5rem', fontWeight: 'bold' }}>{comp.name}</p>
+                          <p style={{ color: '#d1d5db' }}><strong>Differentiation:</strong> {comp.differentiation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Monetization */}
+                {result.monetization && result.monetization.length > 0 && (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>Monetization Strategy</h2>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                      {result.monetization.map((model, idx) => (
+                        <div key={idx} style={{ flex: '1 1 300px', backgroundColor: 'rgba(167, 139, 250, 0.1)', border: '1px solid rgba(167, 139, 250, 0.2)', borderRadius: '0.75rem', padding: '1rem' }}>
+                          <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#c4b5fd', marginBottom: '0.5rem' }}>{model.model}</h3>
+                          <p style={{ color: '#d1d5db' }}>{model.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* GTM Plan */}
+                {result.gtm_plan && result.gtm_plan.length > 0 && (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>Go-To-Market Plan</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {result.gtm_plan.map((phase, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                          <div style={{ padding: '0.25rem 0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', borderRadius: '0.5rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                            {phase.phase}
+                          </div>
+                          <div style={{ color: '#d1d5db', paddingTop: '0.25rem' }}>{phase.strategy}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Complexity */}
+                {result.complexity && (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    marginTop: '1.5rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>Complexity & Cost Estimate</h2>
+                    <div style={{
+                      display: 'inline-flex', padding: '0.5rem 1rem', borderRadius: '0.5rem',
+                      backgroundColor: result.complexity === 'low' ? 'rgba(52, 211, 153, 0.2)' : result.complexity === 'medium' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: result.complexity === 'low' ? '#6ee7b7' : result.complexity === 'medium' ? '#fbbf24' : '#fca5a5',
+                      border: `1px solid ${result.complexity === 'low' ? 'rgba(52, 211, 153, 0.3)' : result.complexity === 'medium' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                    }}>
+                      <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Technical Complexity: {result.complexity}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Risks & Mitigations */}
                 <div style={{
                   backgroundColor: 'rgba(0,0,0,0.2)',

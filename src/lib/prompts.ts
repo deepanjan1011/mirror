@@ -6,6 +6,8 @@ Requirements:
 - KPIs must be numeric or bounded (e.g., "Activation % ≥ 25%", "D30 Retention 15–25%").
 - Include at least 1 product risk and 1 GTM risk with mitigations.
 - For platform_fit, always explain WHY that platform fits the audience and content format.
+- Break down the monetization models and the go-to-market strategy phases.
+- Provide a high-level assessment of the technical complexity (low/medium/high).
 - Add 1–3 high-signal follow-up questions.
 - If you add "assumptions" or "uncertainty_score", they MUST be honest and grounded in the input.
 `;
@@ -16,11 +18,12 @@ IDEA:
 ${idea}
 
 SOURCE_CONTEXT (optional evidence snippets, may be empty):
-${(snippets && snippets.length) ? snippets.map((s,i)=>`(${i+1}) ${s}`).join("\n") : "None"}
+${(snippets && snippets.length) ? snippets.map((s, i) => `(${i + 1}) ${s}`).join("\n") : "None"}
 
 OUTPUT STRICT JSON SCHEMA - ALL ARRAYS MUST CONTAIN STRINGS ONLY:
 {
   "summary": "string",
+  "core_value": "string",
   "segments": [{
     "name": "string",
     "why_it_fits": "string", 
@@ -29,16 +32,28 @@ OUTPUT STRICT JSON SCHEMA - ALL ARRAYS MUST CONTAIN STRINGS ONLY:
     "platform_fit": ["string", "string"]
   }],
   "features": ["string", "string"],
+  "swot": {
+    "strengths": ["string"],
+    "weaknesses": ["string"],
+    "opportunities": ["string"],
+    "threats": ["string"]
+  },
+  "competitors": [{"name": "string", "differentiation": "string"}],
+  "monetization": [{"model": "string", "description": "string"}],
+  "gtm_plan": [{"phase": "string", "strategy": "string"}],
+  "complexity": "low, medium, or high",
   "risks": [{"risk": "string", "mitigation": "string"}],
   "social_fit": [{"platform": "string", "why": "string"}],
   "improvements_by_segment": [{"segment": "string", "ideas": ["string", "string"]}],
   "followups": ["string", "string"],
-  "assumptions": ["string"] (optional),
-  "uncertainty_score": 0.5 (optional: number 0-1)
+  "assumptions": ["string"],
+  "uncertainty_score": 0.5
 }
 
 CRITICAL: All array elements must be simple strings, not objects or nested structures.
+CRITICAL: Output must be PERFECTLY valid JSON. Do not include trailing comments like "(optional)" in the JSON output!
 CONSTRAINTS:
+- "complexity" must be exactly "low", "medium", or "high".
 - Keep arrays non-empty (within reason).
 - Avoid generic fluff; prefer specific audiences, hooks, and metrics.
 - If evidence is thin, explicitly raise uncertainty_score and list assumptions.
@@ -54,7 +69,7 @@ Focus on feasibility, defensibility/moat, KPI realism, audience-channel fit, and
 
 export function buildCriticPrompt(advisorJson: unknown, optionalEvidenceSnippets?: string[]) {
   const snippetsBlock = (optionalEvidenceSnippets && optionalEvidenceSnippets.length)
-    ? optionalEvidenceSnippets.map((s, i) => `(${i+1}) ${s}`).join("\n")
+    ? optionalEvidenceSnippets.map((s, i) => `(${i + 1}) ${s}`).join("\n")
     : "None";
 
   return `
@@ -70,11 +85,11 @@ OUTPUT STRICT JSON SCHEMA - FOLLOW EXACTLY:
   "score": 0.5,
   "issues": [
     {
-      "section": "segments" (optional),
-      "severity": "high|medium|low",
+      "section": "string",
+      "severity": "high, medium, or low",
       "reason": "string",
       "impact": "string",
-      "evidence": "string" (optional, can be null)
+      "evidence": "string or null"
     }
   ],
   "fixes": [
@@ -82,7 +97,7 @@ OUTPUT STRICT JSON SCHEMA - FOLLOW EXACTLY:
       "section": "string",
       "change": "string", 
       "rationale": "string",
-      "example": "string" (optional, can be null)
+      "example": "string or null"
     }
   ],
   "meta": {
@@ -93,6 +108,8 @@ OUTPUT STRICT JSON SCHEMA - FOLLOW EXACTLY:
 }
 
 CRITICAL: 
+- Output must be PERFECTLY valid JSON. Do not include trailing comments like "(optional)" in the JSON output!
+- "section" in issues is optional, use empty string if not applicable.
 - ALL fixes must be objects with section, change, rationale fields
 - meta object is REQUIRED with all three arrays (can be empty)
 - score must be number between 0 and 1
@@ -120,7 +137,7 @@ CRITIC_JSON:
 ${JSON.stringify(criticJson)}
 
 OPTIONAL_ANSWERS_TO_FOLLOWUPS:
-${optionalAnswers && optionalAnswers.length ? optionalAnswers.map((a,i)=>`(${i+1}) ${a}`).join("\n") : "None"}
+${optionalAnswers && optionalAnswers.length ? optionalAnswers.map((a, i) => `(${i + 1}) ${a}`).join("\n") : "None"}
 
 TASK:
 Produce a FINAL_JSON (same schema as Advisor) that applies Critic "fixes" where strong and justified.

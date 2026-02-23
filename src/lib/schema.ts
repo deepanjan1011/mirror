@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const IdeationResponse = z.object({
   summary: z.string().min(1),
+  core_value: z.string().default("General Value Proposition"),
   segments: z.array(z.object({
     name: z.string().default("Unknown Segment"),
     why_it_fits: z.string().optional().default(""),
@@ -10,6 +11,25 @@ export const IdeationResponse = z.object({
     platform_fit: z.array(z.string()).default([])
   })).default([]),
   features: z.array(z.string()).default([]),
+  swot: z.object({
+    strengths: z.array(z.string()).default([]),
+    weaknesses: z.array(z.string()).default([]),
+    opportunities: z.array(z.string()).default([]),
+    threats: z.array(z.string()).default([])
+  }).optional(),
+  competitors: z.array(z.object({
+    name: z.string().default("Unknown Competitor"),
+    differentiation: z.string().default("")
+  })).default([]),
+  monetization: z.array(z.object({
+    model: z.string().default("Subscription"),
+    description: z.string().default("")
+  })).default([]),
+  gtm_plan: z.array(z.object({
+    phase: z.string().default("Launch"),
+    strategy: z.string().default("")
+  })).default([]),
+  complexity: z.enum(["low", "medium", "high"]).default("medium"),
   risks: z.array(z.object({
     risk: z.string().default("General Risk"),
     mitigation: z.string().default("Monitor closely")

@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
     ], {
       model: 'command-r-08-2024',
       temperature: 0.3,
+      maxTokens: 3000,
     });
 
     // Robust JSON cleaning function
@@ -95,6 +96,36 @@ export async function POST(request: NextRequest) {
             .replace(/\t/g, '\\t');
           return `: "${escapedValue}"`;
         });
+
+      // 4. Force trailing closed bracket if last char is missing or newline
+      if (!cleaned.trim().endsWith('}')) {
+        // Find last valid close element
+        let lastValidIndex = Math.max(cleaned.lastIndexOf(']'), cleaned.lastIndexOf('"'), cleaned.lastIndexOf('}'));
+
+        // If the last thing was a comma or an opening bracket, cut it off so it's a valid end state
+        while (lastValidIndex > 0 && (cleaned[lastValidIndex] === ',' || cleaned[lastValidIndex] === '[' || cleaned[lastValidIndex] === '{')) {
+          lastValidIndex--;
+        }
+
+        if (lastValidIndex > 0) {
+          cleaned = cleaned.substring(0, lastValidIndex + 1);
+
+          // Append missing closures based on nesting
+          let openBraces = (cleaned.match(/\{/g) || []).length;
+          let closeBraces = (cleaned.match(/\}/g) || []).length;
+          let openBrackets = (cleaned.match(/\[/g) || []).length;
+          let closeBrackets = (cleaned.match(/\]/g) || []).length;
+
+          // If we end with a quote, make sure it's closed
+          const quoteCount = (cleaned.match(/"/g) || []).length;
+          if (quoteCount % 2 !== 0) {
+            cleaned += '"';
+          }
+
+          while (openBrackets > closeBrackets) { cleaned += ']'; closeBrackets++; }
+          while (openBraces > closeBraces) { cleaned += '}'; closeBraces++; }
+        }
+      }
 
       return cleaned;
     };
