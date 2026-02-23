@@ -117,8 +117,8 @@ Mirror manages 200+ AI personas, each with:
 
 1. **Clone and install dependencies:**
 ```bash
-git clone <repository-url>
-cd tunnel
+git clone <repository-url> mirror
+cd mirror
 npm install
 ```
 
@@ -140,7 +140,7 @@ AUTH0_M2M_CLIENT_ID=your-m2m-client-id
 AUTH0_M2M_CLIENT_SECRET=your-m2m-client-secret
 
 # Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/tunnel
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/mirror
 
 # AI Services
 COHERE_API_KEY=your-cohere-key
@@ -184,7 +184,7 @@ npm run type-check
 ## Project Structure
 
 ```
-tunnel/
+mirror/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── api/               # API routes
