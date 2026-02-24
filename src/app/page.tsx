@@ -246,57 +246,46 @@ export default function Landing() {
               className="flex items-center justify-center gap-12 flex-wrap"
             >
               {/* Cohere Logo */}
-              <div className="flex items-center justify-center h-12 hover:opacity-100 transition-opacity">
+              <div className="flex items-center justify-center h-16 hover:opacity-100 transition-opacity">
                 <Image
                   src="/cohere-logo.png"
                   alt="Cohere"
-                  width={120}
-                  height={40}
-                  className="filter brightness-0 invert"
+                  width={160}
+                  height={50}
+                  className="filter brightness-0 invert w-auto h-8"
                 />
               </div>
 
-              {/* Auth0 Logo */}
-              <div className="flex items-center justify-center h-12 hover:opacity-100 transition-opacity">
+              {/* Supabase Logo */}
+              <div className="flex items-center justify-center h-16 hover:opacity-100 transition-opacity">
                 <Image
-                  src="/auth0-logo.png"
-                  alt="Auth0"
-                  width={100}
-                  height={40}
-                  className="filter brightness-0 invert"
+                  src="/supabase-logo.svg"
+                  alt="Supabase"
+                  width={180}
+                  height={50}
+                  className="filter brightness-0 invert w-auto h-8"
                 />
               </div>
 
               {/* Cloudflare Logo */}
-              <div className="flex items-center justify-center h-12 hover:opacity-100 transition-opacity">
+              <div className="flex items-center justify-center h-16 hover:opacity-100 transition-opacity">
                 <Image
                   src="/cloudflare-logo.png"
                   alt="Cloudflare"
-                  width={140}
-                  height={40}
-                  className="filter brightness-0 invert"
-                />
-              </div>
-
-              {/* MongoDB Logo */}
-              <div className="flex items-center justify-center h-12 hover:opacity-100 transition-opacity">
-                <Image
-                  src="/mongodb-logo.png"
-                  alt="MongoDB"
-                  width={120}
-                  height={40}
-                  className="filter brightness-0 invert"
+                  width={240}
+                  height={65}
+                  className="filter brightness-0 invert w-auto h-12"
                 />
               </div>
 
               {/* VAPI Logo */}
-              <div className="flex items-center justify-center h-12 hover:opacity-100 transition-opacity">
+              <div className="flex items-center justify-center h-16 hover:opacity-100 transition-opacity">
                 <Image
                   src="/VAPI.png"
                   alt="VAPI"
                   width={100}
                   height={40}
-                  className="filter brightness-0 invert"
+                  className="filter brightness-0 invert w-auto h-8"
                 />
               </div>
 
@@ -311,16 +300,7 @@ export default function Landing() {
               />
             </div> */}
 
-              {/* Vercel Logo */}
-              {/* <div className="flex items-center justify-center h-12 opacity-60 hover:opacity-100 transition-opacity">
-              <Image
-                src="/vercel-logo.png"
-                alt="Vercel"
-                width={100}
-                height={40}
-                className="filter brightness-0 invert"
-              />
-            </div> */}
+
             </motion.div>
           </div>
         </section>
