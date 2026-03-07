@@ -466,7 +466,7 @@ export default function ProjectsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="w-full font-mono text-black hover:text-white hover:bg-white/10 bg-white/90 group-hover:bg-white/5"
+                            className="w-full font-mono text-black hover:text-white hover:bg-white/10 bg-white/90 group-hover:bg-white/5 group-hover:text-white transition-all duration-300"
                           >
                             Open Project →
                           </Button>
