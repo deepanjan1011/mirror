@@ -382,6 +382,9 @@ const IdeaPage = () => {
                       onConnect={onConnect}
                       nodeTypes={nodeTypes}
                       fitView
+                      panOnDrag={true}
+                      panOnScroll={true}
+                      zoomOnScroll={true}
                       attributionPosition="bottom-left"
                     >
                       <Controls
