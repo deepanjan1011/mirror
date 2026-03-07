@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "reactflow/dist/style.css";
 /* Rebuild trigger */
 /* @import "tw-animate-css"; */
 
