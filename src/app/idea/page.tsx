@@ -392,7 +392,7 @@ const IdeaPage = () => {
                         nodeColor="#9333ea"
                         maskColor="rgba(0,0,0,0.5)"
                       />
-                      <Background variant={BackgroundVariant.Dots} color="rgba(255,255,255,0.2)" gap={16} size={1} />
+                      <Background variant={BackgroundVariant.Dots} color="rgba(255,255,255,0.4)" gap={20} size={2} />
                     </ReactFlow>
                   </div>
                 )}
