@@ -195,6 +195,7 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
   const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(384); // w-96 = 24rem = 384px (original size)
   const [isResizingRight, setIsResizingRight] = useState<boolean>(false);
   const rightResizeRef = useRef<{ startX: number; startWidth: number }>({ startX: 0, startWidth: 384 });
+  const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied' | 'error'>('idle');
 
   const handleRightResizeMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     setIsResizingRight(true);
@@ -2179,6 +2180,49 @@ Return only the improved idea, no additional commentary.`,
     }
   };
 
+  // Share simulation handler
+  const handleShareSimulation = async () => {
+    if (shareStatus === 'sharing') return;
+    if (!currentPost) {
+      alert('No simulation data to share. Run an analysis first.');
+      return;
+    }
+
+    setShareStatus('sharing');
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectName: project?.name || 'Untitled Project',
+          projectDescription: project?.description || '',
+          postContent: currentPost,
+          metrics,
+          reactions: reactions.map(r => ({
+            personaId: r.personaId,
+            attention: r.attention,
+            sentiment: r.sentiment,
+            reason: r.reason,
+            comment: r.comment,
+            persona: r.persona ? { name: r.persona.name, title: r.persona.title, location: r.persona.location } : undefined,
+          })),
+          impactScore,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create share link');
+      const data = await res.json();
+
+      await navigator.clipboard.writeText(data.url);
+      setShareStatus('copied');
+      setTimeout(() => setShareStatus('idle'), 3000);
+    } catch (err) {
+      console.error('Share error:', err);
+      setShareStatus('error');
+      setTimeout(() => setShareStatus('idle'), 3000);
+    }
+  };
+
   return (
     <>
       <style jsx>{`
@@ -2259,11 +2303,18 @@ Return only the improved idea, no additional commentary.`,
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                className="text-xs hover:bg-white/5"
-                onClick={() => { }}
+                className={`text-xs transition-all duration-300 ${shareStatus === 'copied' ? 'text-green-400 hover:bg-green-400/10' :
+                    shareStatus === 'error' ? 'text-red-400 hover:bg-red-400/10' :
+                      'hover:bg-white/5'
+                  }`}
+                onClick={handleShareSimulation}
+                disabled={shareStatus === 'sharing'}
               >
                 <Share2 className="h-3 w-3 mr-2" />
-                Share Simulation
+                {shareStatus === 'sharing' ? 'Creating link...' :
+                  shareStatus === 'copied' ? '✓ Link Copied!' :
+                    shareStatus === 'error' ? '✗ Failed' :
+                      'Share Simulation'}
               </Button>
             </div>
           </header>

@@ -15,9 +15,9 @@ export function Navbar() {
     const { user } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // Hide navbar on Login, Signup, and Dashboard pages
+    // Hide navbar on Login, Signup, Dashboard, and Shared pages
     // Also hide on Home if user is NOT logged in
-    if (['/login', '/signup', '/dashboard'].includes(pathname) || (pathname === '/' && !user)) {
+    if (['/login', '/signup', '/dashboard'].includes(pathname) || pathname.startsWith('/shared') || (pathname === '/' && !user)) {
         return null;
     }
 
