@@ -661,7 +661,7 @@ const IdeaPage = () => {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         selectedNode={selectedNode}
-        productContext={latestResult?.summary}
+        productContext={`Product idea: ${messages.find(m => m.role === 'user')?.text || 'Unknown product'}. AI Summary: ${latestResult?.summary || ''}`}
       />
       <ScoutDrawer
         isOpen={isScoutDrawerOpen}

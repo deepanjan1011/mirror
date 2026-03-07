@@ -116,176 +116,90 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      right: 0,
-      width: '400px',
-      height: '100vh',
-      backgroundColor: 'rgba(0,0,0,0.9)',
-      backdropFilter: 'blur(24px)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRight: 'none',
-      zIndex: 1000,
-      padding: '1.5rem',
-      overflowY: 'auto',
-      transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-      transition: 'transform 0.3s ease-in-out',
-    }}>
+    <div
+      className={`fixed top-0 right-0 w-[450px] max-w-full h-screen bg-black/80 backdrop-blur-2xl border-l border-white/10 z-[1000] p-6 overflow-y-auto transition-transform duration-300 ease-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+    >
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1.5rem',
-        paddingBottom: '1rem',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <h2 style={{
-          fontSize: '1.25rem',
-          fontWeight: 'bold',
-          color: 'white',
-          margin: 0
-        }}>
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10 shrink-0">
+        <h2 className="text-xl font-medium text-white tracking-tight flex items-center gap-2">
           Evidence & Details
         </h2>
         <button
           onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#9ca3af',
-            fontSize: '1.5rem',
-            cursor: 'pointer',
-            padding: '0.25rem',
-            borderRadius: '0.25rem',
-            transition: 'color 0.2s ease',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+          className="text-white/40 hover:text-white hover:bg-white/5 p-2 rounded-lg transition-colors"
         >
-          ×
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
 
       {/* Content */}
       {selectedNode ? (
-        <div>
-          <div style={{
-            marginBottom: '1rem',
-            padding: '1rem',
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            borderRadius: '0.5rem',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            <h3 style={{
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: '#60a5fa',
-              marginBottom: '0.5rem'
-            }}>
+        <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-8">
+          {/* Selected Node Info */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 shimmer-border relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <h3 className="text-xs font-semibold text-blue-400 mb-1 uppercase tracking-wider relative z-10">
               Selected Node
             </h3>
-            <p style={{
-              color: '#d1d5db',
-              fontSize: '0.875rem',
-              margin: 0
-            }}>
+            <p className="text-white/90 text-[15px] font-medium relative z-10">
               {selectedNode.label}
             </p>
           </div>
 
           {/* Evidence Search */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: '#a78bfa',
-              marginBottom: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
+          <div className="space-y-3">
+            <h4 className="text-[13px] text-white/50 uppercase tracking-widest font-semibold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500/50"></span>
               Search Market Evidence
             </h4>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="flex gap-2 relative group focus-within:z-10">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="e.g. Why are we different?"
-                style={{
-                  flex: 1,
-                  padding: '0.5rem 0.75rem',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  fontSize: '0.875rem'
-                }}
+                className="flex-1 bg-black border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white placeholder-white/20 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all font-mono"
               />
               <button
                 onClick={runSearch}
                 disabled={isSearching || !query.trim()}
-                style={{
-                  padding: '0.5rem 0.75rem',
-                  background: isSearching ? 'linear-gradient(to right, #4b5563, #6b7280)' : 'linear-gradient(to right, #9333ea, #2563eb)',
-                  color: 'white',
-                  fontWeight: '600',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  cursor: isSearching ? 'not-allowed' : 'pointer',
-                  minWidth: '100px'
-                }}
+                className="px-5 bg-white text-black hover:bg-zinc-200 rounded-lg text-[14px] font-medium transition-all disabled:opacity-50 disabled:hover:scale-100 active:scale-95"
               >
-                {isSearching ? 'Searching...' : 'Search'}
+                {isSearching ? <span className="animate-pulse">...</span> : 'Search'}
               </button>
             </div>
             {error && (
-              <div style={{ marginTop: '0.75rem', color: '#fca5a5', fontSize: '0.8rem' }}>{error}</div>
+              <div className="text-red-400/90 text-sm mt-2 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                {error}
+              </div>
             )}
           </div>
 
           {/* Ranked Results */}
           {results.length > 0 && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                color: '#34d399',
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
+            <div className="space-y-4">
+              <h4 className="text-[13px] text-emerald-400/80 uppercase tracking-widest font-semibold flex items-center gap-2 border-b border-white/5 pb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500/50"></span>
                 Ranked Evidence
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="flex flex-col gap-3">
                 {results.map((r, i) => (
-                  <div key={i} style={{
-                    padding: '0.75rem',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '0.5rem'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{r.url}</span>
-                      <span style={{ color: '#fbbf24', fontSize: '0.75rem' }}>{r.score.toFixed(3)}</span>
+                  <div key={i} className="bg-black/40 border border-white/5 hover:border-white/20 transition-colors rounded-xl p-4 group">
+                    <div className="flex justify-between items-start mb-3 gap-4">
+                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white/80 text-[11px] font-mono break-all truncate transition-colors">
+                        {r.url.replace(/^https?:\/\//, '')}
+                      </a>
+                      <span className="text-emerald-400/60 font-mono text-[11px] bg-emerald-400/10 px-2 py-0.5 rounded-full shrink-0">{(r.score * 100).toFixed(1)}%</span>
                     </div>
-                    <div style={{ color: '#d1d5db', fontSize: '0.85rem', lineHeight: 1.45 }}>{r.snippet}</div>
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <button
-                        onClick={() => attachChip(r)}
-                        style={{
-                          padding: '0.25rem 0.5rem',
-                          background: 'rgba(59, 130, 246, 0.2)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          borderRadius: '0.25rem',
-                          color: '#60a5fa',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Attach to node
-                      </button>
-                    </div>
+                    <div className="text-white/70 text-[13px] leading-relaxed mb-4 line-clamp-4">{r.snippet}</div>
+                    <button
+                      onClick={() => attachChip(r)}
+                      className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 text-[13px] font-medium transition-all active:scale-[0.98]"
+                    >
+                      + Attach to Node
+                    </button>
                   </div>
                 ))}
               </div>
@@ -294,157 +208,73 @@ export function EvidenceDrawer({ isOpen, onClose, selectedNode, productContext }
 
           {/* Attached Evidence */}
           {attached.length > 0 && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h4 style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  color: '#60a5fa',
-                  margin: 0,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  Attached Evidence
+            <div className="space-y-4">
+              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <h4 className="text-[13px] text-blue-400/80 uppercase tracking-widest font-semibold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500/50"></span>
+                  Attached
                 </h4>
                 <button
                   onClick={generateInsights}
                   disabled={isGeneratingInsights}
-                  style={{
-                    padding: '0.25rem 0.6rem',
-                    background: 'rgba(96, 165, 250, 0.2)',
-                    border: '1px solid rgba(96, 165, 250, 0.4)',
-                    borderRadius: '0.25rem',
-                    color: '#60a5fa',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    cursor: isGeneratingInsights ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.3)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.2)'}
+                  className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
+                  {isGeneratingInsights ? <span className="animate-spin">⟳</span> : '✨'}
                   {isGeneratingInsights ? 'Generating...' : 'Generate Insights'}
                 </button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="flex flex-col gap-2">
                 {attached.map((a, i) => (
-                  <div key={i} style={{
-                    padding: '0.5rem',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '0.5rem'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{a.url}</span>
-                      <span style={{ color: '#fbbf24', fontSize: '0.75rem' }}>{a.score.toFixed(3)}</span>
+                  <div key={i} className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3 relative group">
+                    <div className="flex justify-between items-start mb-2 gap-4">
+                      <span className="text-white/40 text-[10px] font-mono truncate">{a.url.replace(/^https?:\/\//, '')}</span>
+                      <span className="text-blue-400/60 font-mono text-[10px]">{(a.score * 100).toFixed(0)}%</span>
                     </div>
-                    <div style={{ color: '#d1d5db', fontSize: '0.8rem', lineHeight: 1.45 }}>{a.snippet}</div>
+                    <div className="text-white/60 text-xs leading-relaxed line-clamp-3">{a.snippet}</div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: '#a78bfa',
-              marginBottom: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              Supporting Evidence
-            </h4>
-            <div style={{
-              padding: '1rem',
-              backgroundColor: 'rgba(167, 139, 250, 0.1)',
-              border: '1px solid rgba(167, 139, 250, 0.2)',
-              borderRadius: '0.5rem',
-              color: '#c4b5fd',
-              fontSize: '0.875rem',
-              fontStyle: 'italic'
-            }}>
-              {insights?.supporting_evidence ? (
-                renderMarkdownList(insights.supporting_evidence)
-              ) : (
-                <span style={{ fontStyle: 'italic', color: '#a78bfa' }}>
-                  {attached.length > 0
-                    ? "Click 'Generate Insights' above to analyze attached evidence."
-                    : "Attach evidence and generate insights to see analysis."}
-                </span>
-              )}
-            </div>
-          </div>
+          {/* Insights Sections */}
+          {insights && (
+            <div className="space-y-6 pt-4 border-t border-white/10">
+              <div className="space-y-3">
+                <h4 className="text-[13px] text-purple-400/80 uppercase tracking-widest font-semibold flex items-center gap-2">
+                  Supporting Evidence
+                </h4>
+                <div className="bg-purple-500/5 border border-purple-500/10 rounded-xl p-5 text-purple-200/80 text-[14px] leading-relaxed prose prose-invert max-w-none prose-ul:my-0 prose-li:my-1">
+                  {renderMarkdownList(insights.supporting_evidence)}
+                </div>
+              </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: '#34d399',
-              marginBottom: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              Related Research
-            </h4>
-            <div style={{
-              padding: '1rem',
-              backgroundColor: 'rgba(52, 211, 153, 0.1)',
-              border: '1px solid rgba(52, 211, 153, 0.2)',
-              borderRadius: '0.5rem',
-              color: '#d1fae5',
-              fontSize: '0.875rem',
-              lineHeight: '1.6'
-            }}>
-              {insights?.related_research ? (
-                renderMarkdownList(insights.related_research)
-              ) : (
-                <span style={{ fontStyle: 'italic', color: '#6ee7b7' }}>
-                  Click &apos;Generate Insights&apos; above to analyze attached evidence.
-                </span>
-              )}
-            </div>
-          </div>
+              <div className="space-y-3">
+                <h4 className="text-[13px] text-emerald-400/80 uppercase tracking-widest font-semibold flex items-center gap-2">
+                  Related Research
+                </h4>
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-5 text-emerald-200/80 text-[14px] leading-relaxed prose prose-invert max-w-none prose-ul:my-0 prose-li:my-1">
+                  {renderMarkdownList(insights.related_research)}
+                </div>
+              </div>
 
-          <div>
-            <h4 style={{
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: '#f59e0b',
-              marginBottom: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              Action Items
-            </h4>
-            <div style={{
-              padding: '1rem',
-              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
-              borderRadius: '0.5rem',
-              color: '#fef3c7',
-              fontSize: '0.875rem',
-              lineHeight: '1.6'
-            }}>
-              {insights?.action_items ? (
-                renderMarkdownList(insights.action_items)
-              ) : (
-                <span style={{ fontStyle: 'italic', color: '#fbbf24' }}>
-                  Click &apos;Generate Insights&apos; above to analyze attached evidence.
-                </span>
-              )}
+              <div className="space-y-3 pb-8">
+                <h4 className="text-[13px] text-amber-400/80 uppercase tracking-widest font-semibold flex items-center gap-2">
+                  Action Items
+                </h4>
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-5 text-amber-200/80 text-[14px] leading-relaxed prose prose-invert max-w-none prose-ul:my-0 prose-li:my-1">
+                  {renderMarkdownList(insights.action_items)}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       ) : (
-        <div style={{
-          textAlign: 'center',
-          color: '#9ca3af',
-          fontSize: '0.875rem',
-          marginTop: '2rem'
-        }}>
-          Select a node to view detailed evidence and insights.
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <p className="text-white/40 text-[15px] max-w-[200px]">Select a node on the map to explore market evidence</p>
         </div>
       )}
     </div>

@@ -176,14 +176,18 @@ export async function POST(request: NextRequest) {
             console.log('Using provided evidence for insights:', evidence.length);
             searchResults = evidence;
         } else {
+            // Detect search intent from node + question
+            const intent = detectSearchIntent(nodeLabel || '', query);
+            console.log('Detected intent:', intent);
+
             // 1. Search Tavily (Hybrid Strategy)
 
-            // A. Specific AI Query (Node-Aware: uses node label + node content text for social_fit, improvements, followups, etc.)
-            const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '', nodeContentText);
+            // A. Intent-aware AI Query
+            const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '', nodeContentText, intent);
             console.log('Specific Query:', specificQuery);
 
-            // B. Broad query: user's text + node/product context (no injected phrases)
-            const broadQuery = [query, nodeContentText.slice(0, 150), productContext?.slice(0, 80)].filter(Boolean).join(' ');
+            // B. Intent-aware broad query (no LLM, just smart keyword assembly)
+            const broadQuery = buildBroadQuery(query, nodeLabel || '', productContext || '', intent);
             console.log('Broad Query:', broadQuery);
 
             const searchPromises: Promise<EvidenceResult[]>[] = [
@@ -199,8 +203,8 @@ export async function POST(request: NextRequest) {
 
             console.log(`Merged ${allResults.length} results into ${uniqueResults.length} unique items.`);
 
-            // Curate the top 5 results using LLM (Node-Aware)
-            searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '', nodeContentText);
+            // Curate the top 5 results using LLM (Intent-Aware)
+            searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '', nodeContentText, intent);
             console.log(`Curated down to ${searchResults.length} results`);
         }
 
@@ -335,27 +339,90 @@ Return ONLY valid JSON in this format:
     }
 }
 
+type SearchIntent = 'audience' | 'risk' | 'feature' | 'social' | 'improvement' | 'competitor' | 'monetization' | 'general';
+
+/** Detect the search intent from the node label and user query */
+function detectSearchIntent(nodeLabel: string, query: string): SearchIntent {
+    const label = nodeLabel.toLowerCase();
+    const q = query.toLowerCase();
+
+    // Node-based detection (strongest signal)
+    if (label.includes('segment') || label.includes('audience') || label.includes('target')) return 'audience';
+    if (label.includes('risk') || label.includes('threat') || label.includes('weakness')) return 'risk';
+    if (label.includes('feature') || label.includes('core')) return 'feature';
+    if (label.includes('social') || label.includes('platform')) return 'social';
+    if (label.includes('improvement') || label.includes('enhance')) return 'improvement';
+    if (label.includes('competitor') || label.includes('compet')) return 'competitor';
+    if (label.includes('monetiz') || label.includes('revenue') || label.includes('pricing')) return 'monetization';
+
+    // Query-based detection (fallback)
+    if (/\b(who|audience|target|demographic|people|customer|user|buyer|persona)\b/i.test(q)) return 'audience';
+    if (/\b(risk|danger|fail|threat|challenge|problem|issue|concern|pitfall)\b/i.test(q)) return 'risk';
+    if (/\b(feature|function|capability|tool|build|include|offer|mvp)\b/i.test(q)) return 'feature';
+    if (/\b(social|platform|instagram|twitter|tiktok|facebook|linkedin|market)\b/i.test(q)) return 'social';
+    if (/\b(improve|better|enhance|upgrade|optimize|iterate)\b/i.test(q)) return 'improvement';
+    if (/\b(competitor|alternative|compete|rival|versus|vs)\b/i.test(q)) return 'competitor';
+    if (/\b(price|monetize|revenue|subscription|freemium|charge|cost|profit)\b/i.test(q)) return 'monetization';
+
+    return 'general';
+}
+
+/** Intent-specific search angle descriptors */
+const INTENT_SEARCH_ANGLES: Record<SearchIntent, string> = {
+    audience: 'target audience demographics psychographics buyer persona consumer profile who buys',
+    risk: 'risks challenges failures pitfalls lessons learned case study what went wrong',
+    feature: 'must-have features comparison review user expectations competitor features',
+    social: 'social media marketing strategy platform best practices engagement growth',
+    improvement: 'product improvement user feedback iteration enhancement best practices',
+    competitor: 'competitor analysis alternatives comparison market landscape',
+    monetization: 'pricing strategy revenue model subscription freemium business model',
+    general: 'market research analysis insights trends',
+};
+
+/** Build a broad query without LLM, using intent to add the right search angle */
+function buildBroadQuery(query: string, nodeLabel: string, productContext: string, intent: SearchIntent): string {
+    const productType = productContext.split('.')[0]?.replace(/^Product idea:\s*/i, '').slice(0, 80) || '';
+    const searchAngle = INTENT_SEARCH_ANGLES[intent];
+    return `${query} ${productType} ${searchAngle}`.trim().slice(0, 300);
+}
+
 async function generateSearchQuery(
     userQuery: string,
     productContext: string,
     nodeLabel: string,
-    nodeContentText: string = ''
+    nodeContentText: string = '',
+    intent: SearchIntent = 'general'
 ): Promise<string> {
     try {
         const contentBlock = nodeContentText
-            ? `\nContent of this aspect (use this to target the search): "${nodeContentText.slice(0, 400)}"`
+            ? `\nNode data: "${nodeContentText.slice(0, 300)}"`
             : '';
 
+        const intentInstructions: Record<SearchIntent, string> = {
+            audience: `The user wants to find WHO should use this product. Search for consumer demographics, psychographics, buyer personas, and audience research. Look for "who buys", "target customer", "ideal user profile" type content. Do NOT search for the product itself — search for the PEOPLE.`,
+            risk: `The user wants to understand RISKS and potential failures. Search for case studies of similar products that failed, common pitfalls in this industry, regulatory risks, and technical challenges. Look for "what went wrong", "lessons learned", "failures in", "challenges of" type content.`,
+            feature: `The user wants to know what FEATURES to build. Search for competitor feature comparisons, user reviews mentioning missing features, product requirement analyses, and MVP feature guides. Look for "must-have features", "feature comparison", "user expectations" type content.`,
+            social: `The user wants SOCIAL MEDIA and marketing strategy advice. Search for platform-specific marketing strategies, content engagement data, and go-to-market campaign examples. Look for "marketing strategy for", "best platform for", "social media tips" type content.`,
+            improvement: `The user wants to IMPROVE the product. Search for user feedback patterns, product iteration best practices, and enhancement ideas from similar products. Look for "how to improve", "user feedback on", "product iteration" type content.`,
+            competitor: `The user wants to understand the COMPETITIVE LANDSCAPE. Search for competitor analyses, market comparisons, alternative products, and competitive advantages. Look for "vs", "alternatives to", "competitor analysis" type content.`,
+            monetization: `The user wants PRICING and REVENUE model advice. Search for pricing strategies in this industry, subscription vs. one-time pricing, freemium models, and revenue benchmarks. Look for "pricing strategy", "revenue model", "how to charge for" type content.`,
+            general: `Search for the most relevant market research and data that directly answers the user's question.`,
+        };
+
         const prompt = `
-You are an expert at crafting search queries for market research.
+You are an expert at crafting web search queries.
 
-The user's search text (User Intent) is PRIMARY – the query must directly reflect what they asked.
-Product Context: "${productContext ? productContext.slice(0, 300) : 'New Product Idea'}"
-Specific Aspect (node context): "${nodeLabel || 'General Analysis'}"
-User Intent (what they typed – use this as the main driver): "${userQuery}"${contentBlock}
+The user clicked on "${nodeLabel || 'General'}" in their idea map and asked:
+"${userQuery}"
 
-Convert the user's intent into a single, targeted search query. Use the aspect and product context only to focus or narrow (e.g. add product category if helpful). Do not replace or override the user's wording with different phrases.
-Return ONLY the search query string. Do not use quotes.
+Product: "${productContext ? productContext.slice(0, 300) : 'New Product Idea'}"${contentBlock}
+
+${intentInstructions[intent]}
+
+Create ONE highly targeted search query (max 12 words) that will find web results DIRECTLY answering the user's question.
+The query should search for the ANSWER, not the product.
+
+Return ONLY the search query string, no quotes, no explanation.
 `;
 
         const response = await chatCompletion(
@@ -367,9 +434,8 @@ Return ONLY the search query string. Do not use quotes.
         return refinedQuery || userQuery;
     } catch (error) {
         console.error('Error generating search query:', error);
-        const base = nodeContentText
-            ? `${userQuery} ${nodeContentText.slice(0, 120)}`
-            : (nodeLabel ? `${userQuery} ${nodeLabel}` : userQuery);
+        const angle = INTENT_SEARCH_ANGLES[intent].split(' ').slice(0, 3).join(' ');
+        const base = nodeLabel ? `${userQuery} ${nodeLabel} ${angle}` : `${userQuery} ${angle}`;
         return productContext ? `${base} ${productContext.slice(0, 60)}` : base;
     }
 }
@@ -379,32 +445,44 @@ async function curateResults(
     userQuery: string,
     productContext: string,
     nodeLabel: string,
-    nodeContentText: string = ''
+    nodeContentText: string = '',
+    intent: SearchIntent = 'general'
 ): Promise<EvidenceResult[]> {
     if (results.length <= 5) return results;
 
     try {
         const resultsContext = results.map((r, i) => `[${i}] URL: ${r.url}\nSnippet: ${r.snippet}`).join('\n\n');
         const contentBlock = nodeContentText
-            ? `\nAspect content (prioritize results that match these topics): "${nodeContentText.slice(0, 300)}"`
+            ? `\nNode content: "${nodeContentText.slice(0, 300)}"`
             : '';
 
-        const prompt = `
-You are an expert researcher. Select the TOP 5 results that best match what the user asked.
+        const intentCurationHints: Record<SearchIntent, string> = {
+            audience: 'Prefer results about consumer demographics, buyer personas, audience profiles. Reject generic product/market reports that don\'t describe WHO the customers are.',
+            risk: 'Prefer results about failures, risks, challenges, case studies. Reject results that are just product promotions or market size reports.',
+            feature: 'Prefer results about feature comparisons, user reviews, product requirements. Reject results that don\'t discuss specific features.',
+            social: 'Prefer results about marketing strategies, platform guides, campaign examples. Reject results that aren\'t about social media or marketing.',
+            improvement: 'Prefer results about product feedback, iteration strategies, improvement ideas. Reject generic market reports.',
+            competitor: 'Prefer results that directly compare or analyze competitors. Reject results about the general market without competitor specifics.',
+            monetization: 'Prefer results about pricing strategies, revenue models, payment approaches. Reject results that don\'t discuss monetization.',
+            general: 'Prefer results that most directly answer the user\'s question. Reject off-topic results.',
+        };
 
-User's search text (primary – what they want to see): "${userQuery}"
-Aspect (node) context: "${nodeLabel || 'General Analysis'}"${contentBlock}
-Product context: "${productContext.slice(0, 200)}"
+        const prompt = `
+You are an expert researcher. Select the TOP 5 results that best answer the user's question.
+
+User's question: "${userQuery}"
+Node context: "${nodeLabel || 'General'}"${contentBlock}
+Product: "${productContext.slice(0, 200)}"
+
+${intentCurationHints[intent]}
 
 Candidate Results:
 ${resultsContext}
 
-Prefer results that directly address or answer the user's search text. Use aspect and product context only to judge relevance. Exclude off-topic results.
-
-Return a JSON array containing ONLY the indices of the top 5 results.
+Return a JSON array of the indices of the TOP 5 most relevant results.
 Example: [0, 2, 5, 8, 9]
 
-Do not explain. Return ONLY the JSON array.
+Return ONLY the JSON array.
 `;
 
         const response = await chatCompletion(
@@ -418,12 +496,12 @@ Do not explain. Return ONLY the JSON array.
             return indices
                 .filter(i => typeof i === 'number' && i >= 0 && i < results.length)
                 .map(i => results[i])
-                .slice(0, 5); // Ensure max 5
+                .slice(0, 5);
         }
 
-        return results.slice(0, 5); // Fallback
+        return results.slice(0, 5);
     } catch (error) {
         console.error('Error curating results:', error);
-        return results.slice(0, 5); // Fallback
+        return results.slice(0, 5);
     }
 }

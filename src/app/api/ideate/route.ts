@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       model: 'command-r-08-2024',
       temperature: 0.3,
       maxTokens: 3000,
+      timeoutInSeconds: 600,
     });
 
     // Robust JSON cleaning function

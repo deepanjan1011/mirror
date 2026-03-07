@@ -102,6 +102,7 @@ export async function chatCompletion(messages: Array<{
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  timeoutInSeconds?: number;
 }) {
   // Convert messages to the format expected by Cohere
   const chatHistory: Array<{ role: 'USER' | 'CHATBOT' | 'SYSTEM'; message: string }> = [];
@@ -119,12 +120,16 @@ export async function chatCompletion(messages: Array<{
   }
 
   async function attemptChat() {
-    const response = await cohere.chat({
+    const requestOptions: any = {
       message: lastUserMessage,
       chatHistory,
       model: options?.model || 'command-r-plus-08-2024',
       temperature: options?.temperature || 0.7,
       maxTokens: options?.maxTokens || 1000,
+    };
+
+    const response = await cohere.chat(requestOptions, {
+      timeoutInSeconds: options?.timeoutInSeconds,
     });
 
     return response.text || '';
