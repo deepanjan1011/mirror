@@ -1,0 +1,147 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Outer lens frame gradient -->
+    <linearGradient id="frame-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#888888" />
+      <stop offset="100%" stop-color="#222222" />
+    </linearGradient>
+
+    <!-- Top lens glare -->
+    <linearGradient id="lens-glare" x1="12" y1="2" x2="12" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="white" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="white" stop-opacity="0"   />
+    </linearGradient>
+
+    <!-- Rotating scanner — half transparent, half white -->
+    <linearGradient id="scanner-gradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="white" stop-opacity="0" />
+      <stop offset="50%"  stop-color="white" stop-opacity="1" />
+      <stop offset="100%" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Falling light sweep -->
+    <linearGradient id="falling-light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="white" stop-opacity="0"   />
+      <stop offset="40%"  stop-color="white" stop-opacity="0.1" />
+      <stop offset="60%"  stop-color="white" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="white" stop-opacity="0"   />
+    </linearGradient>
+
+    <!-- Clip to the circle boundary (used by falling light) -->
+    <clipPath id="circle-clip">
+      <circle cx="12" cy="12" r="11" />
+    </clipPath>
+  </defs>
+
+  <!-- Black rounded background -->
+  <rect width="24" height="24" rx="12" fill="#000000" />
+
+  <!-- ═══════════════════════════════════════════
+       RGB VORTEX RINGS  (4 rings × 3 channels)
+       Each ring: r 11→0, opacity 0→1→0, strokeWidth 1→2→0
+       Rings staggered by 0.75s. Duration 3s. circIn easing.
+       R shifted -0.5px, B shifted +0.5px, G centered.
+       All layers use mix-blend-mode: screen.
+  ════════════════════════════════════════════ -->
+
+  <!-- Red channel — shifted left -->
+  <g style="mix-blend-mode:screen" transform="translate(-0.5,0)">
+    <circle cx="12" cy="12" fill="none" stroke="#FF0000">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="0s"    repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="0s"    repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="0s"    repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#FF0000">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="0.75s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="0.75s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="0.75s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#FF0000">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="1.5s"  repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="1.5s"  repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="1.5s"  repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#FF0000">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="2.25s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="2.25s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="2.25s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Blue channel — shifted right -->
+  <g style="mix-blend-mode:screen" transform="translate(0.5,0)">
+    <circle cx="12" cy="12" fill="none" stroke="#0000FF">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="0s"    repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="0s"    repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="0s"    repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#0000FF">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="0.75s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="0.75s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="0.75s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#0000FF">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="1.5s"  repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="1.5s"  repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="1.5s"  repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#0000FF">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="2.25s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="2.25s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="2.25s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Green channel — centered -->
+  <g style="mix-blend-mode:screen">
+    <circle cx="12" cy="12" fill="none" stroke="#00FF00">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="0s"    repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="0s"    repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="0s"    repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#00FF00">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="0.75s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="0.75s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="0.75s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#00FF00">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="1.5s"  repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="1.5s"  repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="1.5s"  repeatCount="indefinite"/>
+    </circle>
+    <circle cx="12" cy="12" fill="none" stroke="#00FF00">
+      <animate attributeName="r"            values="11;0"    dur="3s" begin="2.25s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.55 0 1 0.45"/>
+      <animate attributeName="opacity"      values="0;1;0"   dur="3s" begin="2.25s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1;2;0"   dur="3s" begin="2.25s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══════════════════════════════════════════
+       FALLING LIGHT SWEEP  (y: -24 → 48, 3.5s loop)
+       Clipped to the circle. overlay blend.
+  ════════════════════════════════════════════ -->
+  <g clip-path="url(#circle-clip)" style="mix-blend-mode:overlay">
+    <rect x="0" width="24" height="24" fill="url(#falling-light)" opacity="0.5">
+      <animate attributeName="y" values="-24;48" dur="3.5s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.45 0 0.55 1"/>
+    </rect>
+  </g>
+
+  <!-- ═══════════════════════════════════════════
+       OUTER LENS FRAME
+  ════════════════════════════════════════════ -->
+  <circle cx="12" cy="12" r="11" stroke="url(#frame-gradient)" stroke-width="2" fill="none" />
+
+  <!-- ═══════════════════════════════════════════
+       TOP LENS GLARE  (static ellipse)
+  ════════════════════════════════════════════ -->
+  <ellipse cx="12" cy="6" rx="8" ry="4" fill="url(#lens-glare)" opacity="0.7" />
+
+  <!-- ═══════════════════════════════════════════
+       ROTATING SCANNER  (360° in 8s, linear)
+  ════════════════════════════════════════════ -->
+  <circle cx="12" cy="12" r="11" stroke="url(#scanner-gradient)" stroke-width="2" fill="none">
+    <animateTransform attributeName="transform" type="rotate"
+      values="0 12 12;360 12 12" dur="8s" repeatCount="indefinite" calcMode="linear"/>
+  </circle>
+
+</svg>
