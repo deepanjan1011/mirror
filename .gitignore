@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# docs and reports
+/docs/
+/playwright-report/
+/test-results/
+
+# local files and data
+supabase-schema.sql
+screenshot.png
+personas.json
+repro_issue.js
+*.log
+.cloude
+.superpowers
+*.local
