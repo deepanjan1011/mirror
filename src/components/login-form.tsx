@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ArrowLeft } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from 'react'
@@ -61,6 +62,10 @@ export function LoginForm({
     <div className={cn("flex w-full max-w-sm mx-auto flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
+          <a href="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition w-fit">
+            <ArrowLeft className="size-3" />
+            Back
+          </a>
           <CardTitle className="text-xl font-mono">Welcome back</CardTitle>
           <CardDescription className="font-mono">
             Login with your Google account

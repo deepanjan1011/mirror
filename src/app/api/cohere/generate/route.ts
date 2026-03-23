@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
       temperature,
     });
 
-    console.log('📊 [COHERE] API response:', response);
 
     return NextResponse.json({ response });
   } catch (error) {

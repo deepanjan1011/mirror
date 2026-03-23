@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
 
         // If user already exists (duplicate key error), fetch them instead
         if (createError.code === '23505') {
-          console.log('⚠️ User already exists, fetching existing record');
           const { data: existingUser, error: fetchError } = await supabaseAdmin
             .from('users')
             .select('*')
@@ -67,7 +66,6 @@ export async function POST(request: NextRequest) {
 
           if (!fetchError && existingUser) {
             user = existingUser;
-            console.log('✅ Found existing user record:', user.email);
           } else {
             console.error('💥 Failed to fetch existing user:', fetchError);
             return NextResponse.json({ error: 'Failed to create or fetch user record' }, { status: 500 });
@@ -78,11 +76,9 @@ export async function POST(request: NextRequest) {
         }
       } else {
         user = newUser;
-        console.log('✅ Created new user record:', user.email);
       }
     }
 
-    console.log('✅ User authenticated:', authData.user.email, 'User record:', user?.email || 'none');
 
     // Return format that matches what the frontend expects from Auth0
     const responseData = {
@@ -99,7 +95,6 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log('✅ User logged in successfully:', authData.user.email);
 
     return NextResponse.json(responseData);
 

@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getManagementClient } from '@/lib/auth0-management';
 
 export async function GET(request: NextRequest) {
-  console.log('👥 [FETCH-AUTH0-USERS] API endpoint called');
   
   try {
     const { searchParams } = new URL(request.url);
     const niche = searchParams.get('niche');
     const limit = parseInt(searchParams.get('limit') || '100');
     
-    console.log('🔍 [FETCH-AUTH0-USERS] Fetching users:', { niche, limit });
     
     const client = getManagementClient();
     
@@ -22,10 +20,8 @@ export async function GET(request: NextRequest) {
     const perPage = 100; // Auth0 max per page
     const maxPages = Math.ceil(Math.min(limit, 1000) / perPage); // Cap at 1000 users max
     
-    console.log(`🔄 [FETCH-AUTH0-USERS] Need to fetch ${limit} users, will make ${maxPages} requests of ${perPage} each`);
     
     for (let page = 0; page < maxPages; page++) {
-      console.log(`📄 [FETCH-AUTH0-USERS] Fetching page ${page + 1}/${maxPages}`);
       
       const response = await client.users.getAll({
         q: searchQuery,
@@ -45,23 +41,19 @@ export async function GET(request: NextRequest) {
       
       allUsers = [...allUsers, ...pageUsers];
       
-      console.log(`📄 [FETCH-AUTH0-USERS] Page ${page + 1}: got ${pageUsers.length} users, total so far: ${allUsers.length}`);
       
       // Stop if we got fewer users than requested (reached end)
       if (pageUsers.length < perPage) {
-        console.log(`🏁 [FETCH-AUTH0-USERS] Reached end of users at page ${page + 1}`);
         break;
       }
       
       // Stop if we have enough users
       if (allUsers.length >= limit) {
-        console.log(`🎯 [FETCH-AUTH0-USERS] Reached target of ${limit} users`);
         break;
       }
     }
     
     const usersArray = allUsers.slice(0, limit); // Trim to exact limit
-    console.log(`✅ [FETCH-AUTH0-USERS] Found ${usersArray.length} users (total available=${totalCount})`);
     
     // Transform Auth0 users to your profile format
     const profiles = usersArray.map((user: any) => ({

@@ -125,7 +125,6 @@ export async function POST(request: NextRequest) {
 async function processSimulation(simulationId: string, postContent: string, userId: string, platform: string, nichePersonaIds?: number[]) {
   try {
     // Step 1: Analyze with Cohere
-    console.log(`Analyzing ${platform} post...`);
     const postAnalysis = await analyzePost(postContent, platform);
 
     await supabaseAdmin
@@ -147,7 +146,6 @@ async function processSimulation(simulationId: string, postContent: string, user
       throw new Error("No personas found");
     }
 
-    console.log(`Processing ${personas.length} personas...`);
 
     // Step 3: Generate opinions
     const reactions: ReactionInsert[] = [];
@@ -208,7 +206,6 @@ async function processSimulation(simulationId: string, postContent: string, user
     const score = fullCount * 2 + partialCount;
 
     // Step 5: Insights
-    console.log('Generating insights...');
     const insights = await generateInsights(reactions as any[], personas as any[], postAnalysis);
 
     // Step 6: Final Update
@@ -238,7 +235,6 @@ async function processSimulation(simulationId: string, postContent: string, user
       await supabaseAdmin.from('users').update({ credits: Math.max(0, currentUser.credits - 1) }).eq('id', userId);
     }
 
-    console.log(`Simulation ${simulationId} completed`);
 
   } catch (error) {
     console.error('Error processing simulation:', error);

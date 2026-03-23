@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rerank } from '@/lib/cohere';
 
 export async function POST(request: NextRequest) {
-  console.log('🎯 [SELECT-NICHE-USERS] API endpoint called');
   
   try {
     const body = await request.json();
@@ -20,9 +19,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('🔍 [SELECT-NICHE-USERS] Processing', users.length, 'users for niche:', niche);
-    console.log('🔍 [SELECT-NICHE-USERS] Original prompt:', prompt?.substring(0, 100) + '...');
-    console.log('🔍 [SELECT-NICHE-USERS] Limit set to:', limit);
 
     // Create user profile summaries for Cohere reranking
     const userDocuments = users.map((user: any) => {
@@ -34,12 +30,9 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    console.log('📝 [SELECT-NICHE-USERS] Created', userDocuments.length, 'user profile documents');
-    console.log('📝 [SELECT-NICHE-USERS] Sample profile text:', userDocuments[0]?.text.substring(0, 150) + '...');
 
     // Create a comprehensive query for Cohere reranking
     const query = createNicheQuery(niche, prompt);
-    console.log('🔍 [SELECT-NICHE-USERS] Reranking query:', query);
 
     // Use Cohere rerank to find the most relevant users
     const rerankResults = await rerank(
@@ -51,7 +44,6 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log('✅ [SELECT-NICHE-USERS] Cohere rerank completed, got', rerankResults.length, 'results');
 
     // Map rerank results back to user objects
     const selectedUsers = rerankResults.map((result: any) => {
@@ -70,22 +62,6 @@ export async function POST(request: NextRequest) {
     const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const maxScore = Math.max(...scores);
     const minScore = Math.min(...scores);
-
-    console.log('📊 [SELECT-NICHE-USERS] Relevance scores:', {
-      count: selectedUsers.length,
-      average: avgScore.toFixed(3),
-      max: maxScore.toFixed(3),
-      min: minScore.toFixed(3),
-      highRelevance: scores.filter(s => s > 0.8).length,
-      mediumRelevance: scores.filter(s => s > 0.5 && s <= 0.8).length,
-      lowRelevance: scores.filter(s => s <= 0.5).length
-    });
-
-    // Log top selected users for debugging
-    console.log(`🏆 [SELECT-NICHE-USERS] Top ${Math.min(5, selectedUsers.length)} selected users:`);
-    selectedUsers.slice(0, Math.min(5, selectedUsers.length)).forEach((user, i) => {
-      console.log(`  ${i + 1}. ${user.name} (${user.relevanceScore.toFixed(3)}) - ${user.title || user.occupation}`);
-    }); 
 
     return NextResponse.json({ 
       success: true, 

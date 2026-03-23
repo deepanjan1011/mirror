@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from '@/lib/cohere'; export async function POST(request: NextRequest) {
-  console.log(' [EXTRACT-NICHE] API endpoint called');
 
   try {
     const body = await request.json();
-    console.log(' [EXTRACT-NICHE] Request body:', body);
 
     const { idea } = body;
 
@@ -13,12 +11,10 @@ import { generateText } from '@/lib/cohere'; export async function POST(request:
       return NextResponse.json({ error: 'Idea is required' }, { status: 400 });
     }
 
-    console.log(' [EXTRACT-NICHE] Processing idea:', idea.substring(0, 100) + '...');
 
     // Extract niche/industry from the idea dynamically using Cohere
     const niche = await extractNicheFromIdea(idea);
 
-    console.log(' [EXTRACT-NICHE] Successfully identified niche:', niche);
 
     return NextResponse.json({
       success: true,
@@ -37,7 +33,6 @@ import { generateText } from '@/lib/cohere'; export async function POST(request:
 }
 
 async function extractNicheFromIdea(idea: string): Promise<string> {
-  console.log(' [EXTRACT-NICHE] Starting AI niche analysis for idea length:', idea.length);
 
   try {
     const prompt = `You are an expert business analyst and market researcher. 
@@ -54,7 +49,6 @@ Niche/Industry:`;
     });
 
     const niche = responseText.trim();
-    console.log(' [EXTRACT-NICHE] AI successfully determined niche:', niche);
 
     // Fallback if the AI gives a strangely long response
     if (niche.length > 50) {

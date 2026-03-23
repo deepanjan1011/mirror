@@ -2,13 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { chatCompletion } from '@/lib/cohere';
 
 export async function POST(request: NextRequest) {
-    console.log('🎯 [GENERATE-OPINIONS] API endpoint called');
 
     try {
         const body = await request.json();
-        console.log('🎯 [GENERATE-OPINIONS] Request body keys:', Object.keys(body));
-        console.log('🎯 [GENERATE-OPINIONS] Profiles count:', body.profiles?.length || 0);
-        console.log(' [GENERATE-OPINIONS] Idea preview:', body.idea?.substring(0, 50) + '...' || 'No idea');
 
         const { idea, profiles } = body;
 
@@ -24,23 +20,11 @@ export async function POST(request: NextRequest) {
 
         // Apply rate limiting (max 25 profiles) to prevent 429 Too Many Requests
         const limitedProfiles = profiles.slice(0, 25);
-        console.log(`🎯 [GENERATE-OPINIONS] Processing ${limitedProfiles.length} profiles (Rate limited from ${profiles.length})`);
 
         // Generate opinions for each profile using Cohere
         const opinions = await Promise.all(limitedProfiles.map(async (profile: any, index: number) => {
-            console.log(`🎯 [GENERATE-OPINIONS] Processing profile ${index + 1}/${limitedProfiles.length}:`, {
-                name: profile.name,
-                title: profile.title,
-                personaId: profile.personaId
-            });
-
             try {
                 const opinion = await generateOpinionWithCohere(profile, idea);
-                console.log(`✅ [GENERATE-OPINIONS] Generated opinion for ${profile.name}:`, {
-                    attention: opinion.attention,
-                    sentiment: typeof opinion.sentiment === 'number' ? opinion.sentiment.toFixed(2) : 'N/A',
-                    hasComment: !!opinion.comment
-                });
                 return opinion;
             } catch (error) {
                 console.error(`💥 [GENERATE-OPINIONS] Error generating opinion for ${profile.name}:`, error);
@@ -49,7 +33,6 @@ export async function POST(request: NextRequest) {
             }
         }));
 
-        console.log('✅ [GENERATE-OPINIONS] Successfully generated', opinions.length, 'opinions');
 
         // Log opinion distribution
         const attentionDistribution = opinions.reduce((acc: any, op) => {
@@ -59,13 +42,6 @@ export async function POST(request: NextRequest) {
 
         const avgSentiment = opinions.reduce((sum, op) => sum + op.sentiment, 0) / opinions.length;
         const commentsCount = opinions.filter(op => op.comment).length;
-
-        console.log('📊 [GENERATE-OPINIONS] Opinion statistics:', {
-            attentionDistribution,
-            avgSentiment: avgSentiment.toFixed(2),
-            commentsCount,
-            commentsPercentage: ((commentsCount / opinions.length) * 100).toFixed(1) + '%'
-        });
 
         return NextResponse.json({
             success: true,

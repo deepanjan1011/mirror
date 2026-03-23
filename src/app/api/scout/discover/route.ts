@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
         const ideaTrimmed = idea.trim().substring(0, 200);
 
         // ── STEP 1: Use Cohere to identify REAL competitors ──
-        console.log('🔍 [SCOUT] Step 1: Asking Cohere to identify competitors...');
 
         const coherePrompt = `You are a market research analyst. For the following product idea, identify the top 5 REAL existing competitor products/companies that are closest in functionality.
 
@@ -94,7 +93,6 @@ Example output:
                 { model: 'command-r-plus-08-2024', temperature: 0.3, maxTokens: 800 }
             );
 
-            console.log('🔍 [SCOUT] Cohere response:', cohereResponse.substring(0, 500));
 
             // Parse JSON from response (handle possible markdown wrapping)
             let jsonStr = cohereResponse.trim();
@@ -112,9 +110,6 @@ Example output:
             console.error('🔍 [SCOUT] Cohere competitor identification failed:', err);
         }
 
-        console.log(`🔍 [SCOUT] Cohere identified ${competitors.length} competitors:`,
-            competitors.map(c => `${c.name} (${c.website})`).join(', '));
-
         if (competitors.length === 0) {
             return NextResponse.json({
                 success: true,
@@ -125,7 +120,6 @@ Example output:
         }
 
         // ── STEP 2: Verify each competitor with Tavily ──
-        console.log('🔍 [SCOUT] Step 2: Verifying competitor sites with Tavily...');
 
         const verifiedCompetitors = await Promise.all(
             competitors.map(async (comp) => {
@@ -176,7 +170,6 @@ Example output:
         // Build summary from competitor names
         summary = `Found ${verifiedCompetitors.length} competitors: ${verifiedCompetitors.map(c => c.name).join(', ')}.`;
 
-        console.log(`🔍 [SCOUT] Returning ${verifiedCompetitors.length} verified competitors`);
 
         return NextResponse.json({
             success: true,

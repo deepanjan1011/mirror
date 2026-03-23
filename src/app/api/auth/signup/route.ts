@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
       
       // If user already exists, fetch them
       if (userError.code === '23505') {
-        console.log('⚠️ User record already exists, fetching');
         const { data: existingUser } = await supabaseAdmin
           .from('users')
           .select('*')
@@ -77,7 +76,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('✅ User signed up successfully:', authData.user.email);
 
     // Return format that matches what the frontend expects
     const responseData = {

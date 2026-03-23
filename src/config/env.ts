@@ -17,7 +17,7 @@ const serverSchema = z.object({
   AUTH0_CLIENT_SECRET: z.string().optional(),
 
   // AI Services
-  COHERE_API_KEY: z.string().min(1).optional(), // Make optional to prevent build crashes if missing locally
+  COHERE_API_KEY: z.string().min(1),
   OPENAI_API_KEY: z.string().optional(),
   TAVILY_API_KEY: z.string().optional(),
   VAPI_PRIVATE_KEY: z.string().optional(),

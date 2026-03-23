@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log(`Doing a fresh seed of ${personas.length} personas...`);
 
         // 1. Clear existing personas? 
         // Maybe better to upsert based on persona_id to avoid breaking foreign keys if any

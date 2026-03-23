@@ -551,7 +551,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
   // Special handling for global deployment mode - show all dots as white initially
   useEffect(() => {
     if (isGlobalDeployment && allUsers.length > 0 && reactions.length === 0) {
-      console.log('🌍 [GLOBAL] Setting up white dots for global deployment');
       const whiteDots = allUsers
         .filter(user => user.email?.endsWith('@fake.com'))
         .map(user => {
@@ -582,14 +581,12 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         })
         .filter(Boolean);
 
-      console.log(`🌍 [GLOBAL] Created ${whiteDots.length} white dots`);
       setGlobeDots(whiteDots);
     }
   }, [isGlobalDeployment, allUsers.length]); // Only when entering/exiting global mode
 
   // Load all real Auth0 users initially (greyed out)
   const loadRealAuth0Users = async () => {
-    console.log('👥 [AUTH0-USERS] Loading real Auth0 users...');
     setIsLoadingGlobalUsers(true);
 
     try {
@@ -609,13 +606,10 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
             return email.endsWith('@fake.com');
           });
 
-          console.log('✅ [AUTH0-USERS] Loaded', data.users.length, 'total users, filtered to', fakeUsers.length, '@fake.com users');
-          console.log('🌍 [AUTH0-USERS] Only @fake.com users will display on globe');
 
           setAllUsers(fakeUsers);
           setPersonas(fakeUsers);
         } else {
-          console.log('⚠️ [AUTH0-USERS] No real users found in Auth0 database');
         }
       } else {
         console.error('❌ [AUTH0-USERS] Failed to fetch users:', response.status);
@@ -630,7 +624,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   // Load personas from local JSON file (much faster than Auth0)
   const loadLocalPersonas = async () => {
-    console.log('📁 [LOCAL-PERSONAS] Loading personas from local JSON file...');
 
     try {
       const response = await fetch('/api/personas-local');
@@ -638,12 +631,10 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.users && data.users.length > 0) {
-          console.log('✅ [LOCAL-PERSONAS] Loaded', data.users.length, 'personas from local file');
 
           setAllUsers(data.users);
           setPersonas(data.users);
         } else {
-          console.log('⚠️ [LOCAL-PERSONAS] No personas found in local file');
         }
       } else {
         console.error('❌ [LOCAL-PERSONAS] Failed to fetch personas:', response.status);
@@ -655,7 +646,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   // Find 100 most relevant users from loaded Auth0 users using Cohere
   const findRelatedAuth0Users = async (prompt: string) => {
-    console.log('🔍 [NICHE-SEARCH] Finding Auth0 users related to prompt:', prompt);
 
     try {
       // Extract niche from prompt
@@ -670,10 +660,8 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         throw new Error('Failed to extract niche');
       }
 
-      console.log('✅ [NICHE-SEARCH] Detected niche:', nicheData.niche);
 
       // Use Cohere to intelligently select the 5 most relevant users
-      console.log('🤖 [NICHE-SEARCH] Using Cohere to select most relevant users from', allUsers.length, 'total users');
 
       const selectionResponse = await fetch('/api/select-niche-users', {
         method: 'POST',
@@ -691,8 +679,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         throw new Error('Failed to select niche users with Cohere');
       }
 
-      console.log('✅ [NICHE-SEARCH] Cohere selected', selectionData.selectedUsers.length, 'users');
-      console.log('📊 [NICHE-SEARCH] Average relevance score:', selectionData.averageRelevanceScore?.toFixed(3));
 
       setSelectedUsers(selectionData.selectedUsers);
       return selectionData.selectedUsers;
@@ -707,7 +693,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         })
         .sort(() => Math.random() - 0.5) // Randomize for diversity
         .slice(0, 5);  // Change from 100 to 5
-      console.log('🔄 [NICHE-SEARCH] Using fallback: 5 random @fake.com users for diversity');
       setSelectedUsers(fallbackUsers);
       return fallbackUsers;
     }
@@ -715,11 +700,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   // Update globe dots to highlight niche personas
   const updateGlobeDotsForNiche = (nicheIds: number[]) => {
-    console.log('🌍 [UPDATE-GLOBE] Updating globe dots for niche:', {
-      nicheIdsCount: nicheIds.length,
-      allUsersCount: allUsers.length,
-      firstNicheId: nicheIds[0]
-    });
 
     if (allUsers.length === 0) {
       console.warn('⚠️ [UPDATE-GLOBE] No users loaded yet, cannot update globe dots');
@@ -789,7 +769,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
       };
     }).filter(dot => dot !== null);
 
-    console.log(`🌍 [UPDATE-GLOBE] Setting ${dots.length} globe dots (${nicheIds.length} active in niche) - Start WHITE`);
     setGlobeDots(dots);
   };
 
@@ -829,7 +808,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
     setCurrentProcessingStep('Identifying target niche...');
 
     try {
-      console.log('🔍 [NICHE-SEARCH] Finding niche personas for:', postContent);
 
       if (!user) {
         throw new Error('Please log in to run simulations');
@@ -847,7 +825,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         throw new Error('Failed to extract niche');
       }
 
-      console.log('✅ [NICHE-SEARCH] Detected niche:', nicheData.niche);
 
       // Use the working select-niche-users endpoint
       const response = await fetch('/api/select-niche-users', {
@@ -887,7 +864,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
       setSelectedUsers(data.selectedUsers);
 
-      console.log(`✅ [NICHE-SEARCH] Found ${data.selectedUsers.length} most relevant personas in niche: ${nicheData.niche}`);
       setCurrentProcessingStep(`Found ${data.selectedUsers.length} most relevant personas in: ${nicheData.niche}`);
 
       // Update globe dots to highlight niche personas
@@ -908,13 +884,11 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
       return;
     }
 
-    console.log('🚀 STARTING ANALYSIS - Resetting all states');
 
     // Clear any existing polling before starting new analysis
     if (pollInterval.current) {
       clearInterval(pollInterval.current);
       pollInterval.current = null;
-      console.log('🧹 Cleared existing polling interval');
     }
 
     setIsRunningAnalysis(true);
@@ -934,7 +908,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
     updateGlobeDotsToWhite(selectedUsers.map((u: any) => (u.user_metadata || u).personaId));
 
     try {
-      console.log('🚀 [ANALYSIS] Running sentiment analysis on', selectedUsers.length, 'users');
 
       // Generate opinions for selected users
       const opinionsResponse = await fetch('/api/generate-opinions', {
@@ -951,7 +924,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         throw new Error('Failed to generate opinions');
       }
 
-      console.log('✅ [ANALYSIS] Generated', opinionsData.opinions.length, 'opinions');
 
       // Run simulation with generated opinions
       runGeneratedSimulation(opinionsData.opinions);
@@ -966,7 +938,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
   // Load niche profiles (generated profiles)
   const loadNicheProfiles = async () => {
-    console.log('🎯 [NICHE-PROFILES] Loading generated profiles...');
 
     try {
       const response = await fetch('/api/generate-profiles', {
@@ -983,7 +954,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
         throw new Error(data.error || 'Failed to generate profiles');
       }
 
-      console.log('✅ [NICHE-PROFILES] Loaded profiles:', data.profiles.length);
 
       // Convert to globe dots (filter for @fake.com only)
       const nicheDots = data.profiles
@@ -1021,13 +991,11 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
   // Poll for simulation updates
   useEffect(() => {
     if (simulationId && isSimulating) {
-      console.log('📡 Starting polling for simulation:', simulationId);
       pollInterval.current = setInterval(() => {
         fetchSimulationUpdates();
       }, 1000);
       return () => {
         if (pollInterval.current) {
-          console.log('🛑 Stopping polling (cleanup)');
           clearInterval(pollInterval.current);
           pollInterval.current = null;
         }
@@ -1074,7 +1042,6 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
   };
 
   const addToFeedbackList = (persona: Persona, reaction: any) => {
-    console.log('🔔 [ADD-FEEDBACK] Button clicked', { persona: persona.name, reaction: reaction.attention });
 
     // Check if already in feedback list
     const personaId = (persona.user_metadata || persona).personaId;
@@ -1084,10 +1051,8 @@ export function SimulationDashboard({ user, projectId }: { user: any; projectId?
 
     if (!alreadyExists) {
       setFeedbackList(prev => [...prev, { persona, reaction }]);
-      console.log('✅ [ADD-FEEDBACK] Added to feedback list. Total:', feedbackList.length + 1);
       alert(`Added ${persona.name} to feedback list`);
     } else {
-      console.log('⚠️ [ADD-FEEDBACK] Already in feedback list');
       alert(`${persona.name} is already in the feedback list`);
     }
   };
@@ -1134,7 +1099,6 @@ Improved idea:`,
       }
 
       const refinedData = await response.json();
-      console.log('Refine response:', refinedData);
 
       // Handle the Cohere API response format
       let refinedText = '';
@@ -1233,12 +1197,10 @@ Improved idea:`,
         })
         .filter(Boolean);
 
-      console.log('🌍 [GLOBAL] Created', allDots.length, 'dots for globe');
 
       setGlobeDots(allDots);
 
       // Generate opinions for ALL users (global deployment)
-      console.log('🌍 [GLOBAL] Running analysis on', allUsers.length, 'users globally');
 
       const opinionsResponse = await fetch('/api/generate-opinions', {
         method: 'POST',
@@ -1254,7 +1216,6 @@ Improved idea:`,
         throw new Error('Failed to generate global opinions');
       }
 
-      console.log('✅ [GLOBAL] Generated', opinionsData.opinions.length, 'opinions globally');
 
       // Run simulation with generated opinions
       runGeneratedSimulation(opinionsData.opinions);
@@ -1318,7 +1279,6 @@ Improved idea:`,
 
   // Simulation with generated profiles and opinions
   const runGeneratedSimulation = (opinions: any[]) => {
-    console.log('🚀 [SIMULATION] Running simulation with generated opinions');
 
     // Reset notification tracking
     setNotifiedPersonaIds(new Set());
@@ -1330,7 +1290,6 @@ Improved idea:`,
     const interval = setInterval(() => {
       if (currentIndex >= opinions.length) {
         clearInterval(interval);
-        console.log('✅ SIMULATION COMPLETE - All opinions processed');
         setIsSimulating(false);
         setIsRunningAnalysis(false);  // FIX: Reset the analyze button
         setHasCompletedFirstAnalysis(true);  // FIX: Enable global button
@@ -1443,7 +1402,6 @@ Improved idea:`,
 
   // Demo simulation - only for fallback when API is not available
   const runDemoSimulation = () => {
-    console.log('🔄 [SIMULATION] Running fallback demo (API not available)');
     alert('Running in demo mode - API keys not configured. Add OpenAI/Cohere API keys for unique AI-generated responses.');
 
     // Reset notification tracking when starting new simulation
@@ -1456,7 +1414,6 @@ Improved idea:`,
     const interval = setInterval(() => {
       if (currentIndex >= personas.length) {
         clearInterval(interval);
-        console.log('✅ DEMO SIMULATION COMPLETE - All personas processed');
         setIsSimulating(false);
         setIsRunningAnalysis(false);  // FIX: Reset the analyze button
         setHasCompletedFirstAnalysis(true);  // FIX: Enable global button
@@ -1572,11 +1529,8 @@ Improved idea:`,
       });
 
       const data = await response.json();
-      console.log('📡 Polling response:', data);
-      console.log('📡 Status:', data.status);
 
       if (data.newReactions && data.newReactions.length > 0) {
-        console.log(`🔄 [SIMULATION] Got ${data.newReactions.length} new reactions from API:`, data.newReactions[0]);
 
         const reactionsWithPersona = data.newReactions.map((r: any) => ({
           ...r,
@@ -1588,17 +1542,14 @@ Improved idea:`,
 
         setReactions(prev => {
           const newReactions = [...prev, ...reactionsWithPersona];
-          console.log(`📊 Total reactions now: ${newReactions.length}, Selected users: ${selectedUsers.length}`);
 
           // If we have all reactions, stop the simulation immediately
           if (newReactions.length >= selectedUsers.length && selectedUsers.length > 0) {
-            console.log('🎉 ALL REACTIONS RECEIVED FROM API - STOPPING SIMULATION');
 
             // Stop polling immediately
             if (pollInterval.current) {
               clearInterval(pollInterval.current);
               pollInterval.current = null;
-              console.log('🛑 Polling stopped');
             }
 
             // Force state reset with minimal delay
@@ -1606,7 +1557,6 @@ Improved idea:`,
               setIsSimulating(false);
               setIsRunningAnalysis(false);
               setHasCompletedFirstAnalysis(true);
-              console.log('✅ FORCED STATE RESET COMPLETE - Buttons should work now');
             }, 50);
           }
 
@@ -1677,9 +1627,6 @@ Improved idea:`,
         (reactions.length >= selectedUsers.length && selectedUsers.length > 0);
 
       if (isComplete) {
-        console.log('🎉 SIMULATION COMPLETED - Resetting states');
-        console.log('📊 Completion reason:', data.status === 'completed' ? 'Status completed' : 'All reactions received');
-        console.log(`📊 Reactions: ${reactions.length}, Selected Users: ${selectedUsers.length}`);
 
         // Stop polling immediately
         if (pollInterval.current) {
@@ -1691,7 +1638,6 @@ Improved idea:`,
         setIsSimulating(false);
         setIsRunningAnalysis(false); // Reset the running state immediately
         setHasCompletedFirstAnalysis(true); // Enable global button
-        console.log('✅ States reset: isSimulating=false, isRunningAnalysis=false, hasCompletedFirstAnalysis=true');
 
         if (simulationId) {
           fetchFullResults();
@@ -1709,7 +1655,6 @@ Improved idea:`,
       const response = await fetch(`/api/simulation/${simulationId}`);
       const data = await response.json();
 
-      console.log('📊 [SIMULATION] Full simulation results:', data);
 
       // Set all reactions with their API-generated comments
       if (data.reactions) {
@@ -1727,12 +1672,10 @@ Improved idea:`,
       setMetrics(data.metrics);
 
       // Reset analysis state when complete
-      console.log('🏁 FETCH FULL RESULTS COMPLETE - Final state reset');
       setIsRunningAnalysis(false);
       setIsSimulating(false);
       setIsGlobalDeployment(false);
       setHasCompletedFirstAnalysis(true); // Enable global button after first analysis
-      console.log('🔄 Final states: isRunningAnalysis=false, hasCompletedFirstAnalysis=true');
     } catch (error) {
       console.error('💥 [SIMULATION] Error fetching full results:', error);
     }
@@ -1775,7 +1718,6 @@ Improved idea:`,
 
       // Set up event listeners
       vapiRef.current.on('call-start', () => {
-        console.log('Call started');
         setIsInCall(true);
         setIsConnecting(false);
         setConnectionStatus('connected');
@@ -1783,23 +1725,19 @@ Improved idea:`,
       });
 
       vapiRef.current.on('call-end', () => {
-        console.log('Call ended');
         setIsInCall(false);
         setConnectionStatus('idle');
         setTranscript(prev => [...prev, '📞 Call ended']);
       });
 
       vapiRef.current.on('speech-start', () => {
-        console.log('User started speaking');
         setTranscript(prev => [...prev, '🎤 User speaking...']);
       });
 
       vapiRef.current.on('speech-end', () => {
-        console.log('User stopped speaking');
       });
 
       vapiRef.current.on('message', (message: any) => {
-        console.log('Message received:', message);
         if (message.type === 'transcript') {
           const speaker = message.role === 'user' ? '👤 You' : '🤖 Assistant';
           const newTranscript = `${speaker}: ${message.transcript}`;
@@ -1941,7 +1879,6 @@ Remember: You've already formed your opinion. You're here to discuss it, not to 
         // This avoids issues if PlayHT isn't configured in the user's Vapi account
       };
 
-      console.log('🎙️ [VAPI] Starting call with config:', JSON.stringify(assistantOptions, null, 2));
 
       await vapiRef.current.start(assistantOptions as any);
 
@@ -2008,17 +1945,14 @@ Remember: You've already formed your opinion. You're here to discuss it, not to 
   // Fix the response parsing in generateFeedbackSummary
   const generateFeedbackSummary = async (transcript: string) => {
     if (!transcript || transcript.length < 50) {
-      console.log('❌ [FEEDBACK] Transcript too short:', transcript.length);
       return;
     }
 
     // Prevent concurrent calls
     if (isGeneratingFeedbackRef.current) {
-      console.log('⚠️ [FEEDBACK] Feedback generation already in progress, skipping...');
       return;
     }
 
-    console.log('🔄 [FEEDBACK] Generating feedback for transcript length:', transcript.length);
     isGeneratingFeedbackRef.current = true;
     setIsGeneratingFeedback(true);
 
@@ -2037,16 +1971,13 @@ Give me specific action items to address the feedback mentioned in the conversat
       });
 
       const data = await response.json();
-      console.log('📊 [FEEDBACK] API response:', data);
 
       // Fix the response parsing - the API returns { response: text } or { error: ... }
       if (response.ok && data.response) {
         const feedbackText = data.response;
-        console.log('✅ [FEEDBACK] Got feedback from API:', feedbackText.substring(0, 100) + '...');
         setFeedbackSummary(feedbackText);
         setShowFeedback(true);
       } else {
-        console.log('❌ [FEEDBACK] API failed:', data);
         setFeedbackSummary(`Failed to generate feedback: ${data.error || 'Unknown error'}`);
         setShowFeedback(true);
       }
@@ -2063,28 +1994,21 @@ Give me specific action items to address the feedback mentioned in the conversat
 
   // Update the openFeedbackModal function to only run once
   const openFeedbackModal = async () => {
-    console.log('🔔 [GET-FEEDBACK] Button clicked');
-    console.log('🔄 [FEEDBACK] Opening feedback modal, transcript length:', transcript.length);
 
     // End the call first
     if (isInCall) {
-      console.log('📞 [FEEDBACK] Ending call first');
       await endCall();
     }
 
     // Only generate feedback if we have a transcript and haven't already generated it
     if (transcript.length > 0 && !showFeedback && !isGeneratingFeedbackRef.current) {
       const fullConversation = transcript.join(' ');
-      console.log('🔄 [FEEDBACK] Generating feedback for full conversation');
       await generateFeedbackSummary(fullConversation);
     } else if (showFeedback) {
-      console.log('ℹ️ [FEEDBACK] Feedback already generated');
       alert('Feedback has already been generated. Check the Mission Deliverables section.');
     } else if (isGeneratingFeedbackRef.current) {
-      console.log('ℹ️ [FEEDBACK] Feedback generation already in progress');
       alert('Feedback generation is already in progress...');
     } else {
-      console.log('❌ [FEEDBACK] No transcript available');
       alert('No conversation transcript available. Please have a voice call first.');
     }
   };
@@ -2092,17 +2016,14 @@ Give me specific action items to address the feedback mentioned in the conversat
   // Generate improved prompt based on reactions
   const generateImprovedPrompt = async () => {
     if (reactions.length === 0 || !currentPost) {
-      console.log('❌ [IMPROVE] No reactions or current post available');
       return;
     }
 
     // Prevent concurrent calls
     if (isGeneratingImprovedPromptRef.current) {
-      console.log('⚠️ [IMPROVE] Improved prompt generation already in progress, skipping...');
       return;
     }
 
-    console.log('🔄 [IMPROVE] Generating improved prompt based on reactions');
     isGeneratingImprovedPromptRef.current = true;
     setIsGeneratingImprovedPrompt(true);
 
@@ -2158,16 +2079,13 @@ Return only the improved idea, no additional commentary.`,
       });
 
       const data = await response.json();
-      console.log('📊 [IMPROVE] API response:', data);
 
       // Fix the response parsing - check for the actual response format
       if (data.response || data.text) {
         const improvedText = data.response || data.text;
-        console.log('✅ [IMPROVE] Got improved prompt from API');
         setImprovedPrompt(improvedText);
         setPostContent(improvedText); // Update the main input with improved version
       } else {
-        console.log('❌ [IMPROVE] API failed:', data);
         alert('Failed to generate improved prompt. Please try again.');
       }
 
@@ -2331,9 +2249,6 @@ Return only the improved idea, no additional commentary.`,
                     </div>
                     <Button
                       onClick={() => {
-                        console.log('🌍 Global button clicked');
-                        console.log('hasCompletedFirstAnalysis:', hasCompletedFirstAnalysis);
-                        console.log('isRunningAnalysis:', isRunningAnalysis);
                         runGlobalDeployment();
                       }}
                       disabled={!hasCompletedFirstAnalysis || isRunningAnalysis}

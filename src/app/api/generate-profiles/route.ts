@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createBulkAuth0Users, Auth0UserProfile } from '@/lib/auth0-management';
 
 export async function POST(request: NextRequest) {
-  console.log('👥 [GENERATE-PROFILES] API endpoint called');
   
   try {
     const body = await request.json();
-    console.log('📥 [GENERATE-PROFILES] Request body:', body);
     
     const { niche } = body;
 
@@ -15,12 +13,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Niche is required' }, { status: 400 });
     }
 
-    console.log('🎯 [GENERATE-PROFILES] Generating profiles for niche:', niche);
     
     // Generate 50 diverse user profiles based on the niche
     const profiles = generateProfilesForNiche(niche);
     
-    console.log(`✅ [GENERATE-PROFILES] Generated ${profiles.length} profiles for niche: ${niche}`);
     const userTypeStats = profiles.reduce((acc: any, p) => {
       acc[p.user_type] = (acc[p.user_type] || 0) + 1;
       return acc;
@@ -29,11 +25,8 @@ export async function POST(request: NextRequest) {
       acc[p.country] = (acc[p.country] || 0) + 1;
       return acc;
     }, {});
-    console.log(`📊 [GENERATE-PROFILES] User types: Early adopters: ${userTypeStats.earlyAdopter}, Mainstream: ${userTypeStats.mainstream}, Skeptics: ${userTypeStats.skeptic}`);
-    console.log(`🌍 [GENERATE-PROFILES] Countries: ${Object.entries(countryStats).map(([country, count]) => `${country}: ${count}`).join(', ')}`);
 
     // Create Auth0 users from the generated profiles
-    console.log('🔐 [GENERATE-PROFILES] Creating Auth0 users...');
     try {
       const auth0Profiles: Auth0UserProfile[] = profiles.map(profile => ({
         email: profile.email,
@@ -72,7 +65,6 @@ export async function POST(request: NextRequest) {
 
       const auth0Results = await createBulkAuth0Users(auth0Profiles);
       
-      console.log(`✅ [GENERATE-PROFILES] Auth0 user creation complete - Success: ${auth0Results.success.length}, Failed: ${auth0Results.failed.length}`);
       
       if (auth0Results.failed.length > 0) {
         console.warn('⚠️ [GENERATE-PROFILES] Some Auth0 users failed to create:', auth0Results.failed);
@@ -120,7 +112,6 @@ export async function POST(request: NextRequest) {
 }
 
 function generateProfilesForNiche(niche: string): any[] {
-  console.log('🏭 [GENERATE-PROFILES] Starting profile generation for niche:', niche);
   
   const profiles = [];
   
@@ -171,11 +162,9 @@ function generateProfilesForNiche(niche: string): any[] {
     "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"
   ];
 
-  console.log('📋 [GENERATE-PROFILES] Base data loaded - Locations:', locations.length, 'Names:', firstNames.length + lastNames.length);
 
   // Generate niche-specific profile templates
   const nicheProfiles = getNicheSpecificProfiles(niche);
-  console.log('🎨 [GENERATE-PROFILES] Generated', nicheProfiles.length, 'niche-specific templates');
   
   for (let i = 0; i < 50; i++) {
     const template = nicheProfiles[i % nicheProfiles.length];
@@ -250,20 +239,9 @@ function generateProfilesForNiche(niche: string): any[] {
       updatedAt: new Date()
     };
     
-    console.log(`👤 [GENERATE-PROFILES] Generated profile ${i + 1}/50:`, {
-      name: profile.name,
-      email: profile.email,
-      location: `${profile.location.city}, ${profile.location.country}`,
-      coordinates: profile.location.coordinates.coordinates,
-      occupation: profile.occupation,
-      user_type: profile.user_type,
-      template: template.name
-    });
-    
     profiles.push(profile);
   }
   
-  console.log('🎉 [GENERATE-PROFILES] Profile generation complete! Generated', profiles.length, 'profiles');
   
   // Log summary statistics
   const userTypes = profiles.reduce((acc: any, p) => {
@@ -276,14 +254,6 @@ function generateProfilesForNiche(niche: string): any[] {
     acc[locationKey] = (acc[locationKey] || 0) + 1;
     return acc;
   }, {});
-  
-  console.log('📈 [GENERATE-PROFILES] User type distribution:', userTypes);
-  console.log('🌍 [GENERATE-PROFILES] Location distribution (top 5):', 
-    Object.entries(location_count)
-      .sort(([,a]: any, [,b]: any) => b - a)
-      .slice(0, 5)
-      .reduce((obj: any, [k, v]) => ({ ...obj, [k]: v }), {})
-  );
   
   return profiles;
 }

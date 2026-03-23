@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
     }
 
-    console.log('✅ Created session for user:', user.email, 'Session:', session.session_name)
 
     return NextResponse.json({
       success: true,

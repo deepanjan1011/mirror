@@ -173,22 +173,18 @@ export async function POST(request: NextRequest) {
         let searchResults: EvidenceResult[] = [];
 
         if (evidence && Array.isArray(evidence) && evidence.length > 0) {
-            console.log('Using provided evidence for insights:', evidence.length);
             searchResults = evidence;
         } else {
             // Detect search intent from node + question
             const intent = detectSearchIntent(nodeLabel || '', query);
-            console.log('Detected intent:', intent);
 
             // 1. Search Tavily (Hybrid Strategy)
 
             // A. Intent-aware AI Query
             const specificQuery = await generateSearchQuery(query, productContext || '', nodeLabel || '', nodeContentText, intent);
-            console.log('Specific Query:', specificQuery);
 
             // B. Intent-aware broad query (no LLM, just smart keyword assembly)
             const broadQuery = buildBroadQuery(query, nodeLabel || '', productContext || '', intent);
-            console.log('Broad Query:', broadQuery);
 
             const searchPromises: Promise<EvidenceResult[]>[] = [
                 tavilySearch(tavilyKey, specificQuery, 5),
@@ -201,11 +197,9 @@ export async function POST(request: NextRequest) {
             // Merge and Deduplicate by URL
             const uniqueResults = Array.from(new Map(allResults.map(item => [item.url, item])).values());
 
-            console.log(`Merged ${allResults.length} results into ${uniqueResults.length} unique items.`);
 
             // Curate the top 5 results using LLM (Intent-Aware)
             searchResults = await curateResults(uniqueResults, query, productContext || '', nodeLabel || '', nodeContentText, intent);
-            console.log(`Curated down to ${searchResults.length} results`);
         }
 
         // When searchOnly is true, return only results (no insight generation) for a faster Search flow
@@ -253,7 +247,6 @@ Return ONLY valid JSON in this format:
             // Robust JSON cleaning function
             const cleanJson = (str: string) => {
                 let cleaned = str.trim();
-                console.log('Raw Cohere Response:', cleaned);
 
                 // 1. Remove markdown code blocks
                 if (cleaned.startsWith('```')) {

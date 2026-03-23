@@ -48,9 +48,6 @@ export async function POST(request: NextRequest) {
     // Build prompts
     const userPrompt = buildUserPrompt(body.idea.trim());
 
-    console.log('System prompt length:', SYSTEM_PROMPT.length);
-    console.log('User prompt length:', userPrompt.length);
-    console.log('User prompt preview:', userPrompt.substring(0, 200));
 
     // Call Cohere Chat API using the robust client wrapper
     const responseText = await chatCompletion([
@@ -65,7 +62,6 @@ export async function POST(request: NextRequest) {
     // Robust JSON cleaning function
     const cleanJson = (str: string) => {
       let cleaned = str.trim();
-      console.log('Raw Cohere Response:', cleaned);
 
       // 1. Remove markdown code blocks if present
       if (cleaned.startsWith('```')) {

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
+import { MockAppUI } from "@/components/ui/mock-app-ui";
 
 import {
   Announcement,
@@ -79,6 +80,7 @@ function LandingNav() {
 
 export default function Landing() {
   const router = useRouter();
+  const { user } = useAuth();
 
   // Refs for animated beam
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,9 +139,9 @@ export default function Landing() {
 
           <div className="relative z-10 w-full flex flex-col items-center">
             <Announcement className="mb-8">
-              <AnnouncementTag>Latest update</AnnouncementTag>
+              <AnnouncementTag>Status</AnnouncementTag>
               <AnnouncementTitle>
-                Beta v0.1 Now Live
+                Currently in Development
                 <ArrowUpRightIcon
                   className="shrink-0 text-muted-foreground"
                   size={16}
@@ -210,17 +212,12 @@ export default function Landing() {
               className="relative"
               style={{ width: '1200px', maxWidth: '100%' }}
             >
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="shadow-2xl border border-white/20 p-1 w-full h-auto"
-                style={{ aspectRatio: '3/2' }}
+              <div
+                className="shadow-2xl border border-white/20 p-1 w-full overflow-hidden"
+                style={{ aspectRatio: '3/2', background: '#000' }}
               >
-                <source src="/tunnel.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+                <MockAppUI />
+              </div>
             </motion.div>
           </div>
         </section>
@@ -264,17 +261,6 @@ export default function Landing() {
                   width={180}
                   height={50}
                   className="filter brightness-0 invert w-auto h-8"
-                />
-              </div>
-
-              {/* Cloudflare Logo */}
-              <div className="flex items-center justify-center h-16 hover:opacity-100 transition-opacity">
-                <Image
-                  src="/cloudflare-logo.png"
-                  alt="Cloudflare"
-                  width={240}
-                  height={65}
-                  className="filter brightness-0 invert w-auto h-12"
                 />
               </div>
 
@@ -473,11 +459,11 @@ export default function Landing() {
                   <span className="text-sm text-white font-mono">Mirror</span>
                 </div>
                 <div className="text-xs text-white/40 font-mono">
-                  © 2025 Mirror. AI agents for simulated market research.
+                  © 2026 Mirror. AI agents for simulated market research.
                 </div>
                 <div className="flex items-center gap-6 text-xs font-mono">
-                  <a href="/login" className="text-white/60 hover:text-white transition">
-                    Login
+                  <a href={user ? "/projects" : "/login"} className="text-white/60 hover:text-white transition">
+                    {user ? "Dashboard ↗" : "Login"}
                   </a>
                 </div>
               </div>
