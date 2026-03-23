@@ -54,3 +54,5 @@ repro_issue.js
 .cloude
 .superpowers
 *.local
+/tests/
+public/screenshot.png
