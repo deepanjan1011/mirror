@@ -7,7 +7,6 @@ const clientSchema = z.object({
 
 const serverSchema = z.object({
   // Database
-  MONGODB_URI: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
   // Auth0 (Legacy)
