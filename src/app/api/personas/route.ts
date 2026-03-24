@@ -46,10 +46,10 @@ export async function GET(request: NextRequest) {
       // JSON fields (location, demographics etc) keep their internal structure
     }));
 
-    return NextResponse.json({
-      personas: transformedPersonas,
-      total: transformedPersonas.length
-    });
+    return NextResponse.json(
+      { personas: transformedPersonas, total: transformedPersonas.length },
+      { headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=86400' } }
+    );
 
   } catch (error: any) {
     console.error('Error fetching personas:', error);
