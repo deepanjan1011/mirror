@@ -47,12 +47,9 @@ next-env.d.ts
 
 # local files and data
 supabase-schema.sql
-screenshot.png
-personas.json
 repro_issue.js
 *.log
 .cloude
 .superpowers
 *.local
 /tests/
-public/screenshot.png
