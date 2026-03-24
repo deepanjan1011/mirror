@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase';
 import { extractUserFromHeaders } from '@/lib/auth-adapter';
 
-// Helper to get or create user (reused logic for consistency)
-async function getOrCreateUser(supabase: any, headers: any) {
+// Helper to get or create user — uses admin client to bypass RLS
+async function getOrCreateUser(headers: any) {
   const userEmail = headers.email || `user_${headers.id}@tunnel.local`;
 
-  let { data: user, error: userError } = await supabase
+  let { data: user, error: userError } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('email', userEmail)
     .single();
 
   if (userError && userError.code === 'PGRST116') {
-    const { data: newUser, error: createError } = await supabase
+    const { data: newUser, error: createError } = await supabaseAdmin
       .from('users')
       .insert({
-        id: headers.id, // Explicitly set ID to match Auth ID
+        id: headers.id,
         email: userEmail,
         name: headers.email?.split('@')[0] || `User ${headers.id}`,
-        auth0_id: headers.id // Store auth0_id if available
+        auth0_id: headers.id
       })
       .select()
       .single();
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Ensure user exists in public.users table (Sync Auth -> Public)
     try {
-      await getOrCreateUser(supabase, { email, id });
+      await getOrCreateUser({ email, id });
     } catch (e) {
       console.error('Error syncing user:', e);
       // Continue anyway? If sync fails, FK might fail too.
