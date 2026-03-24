@@ -1,14 +1,12 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
-import React, { useRef } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { MirrorLogo } from "@/components/ui/mirror-logo";
 import { TextAnimate } from "@/components/ui/text-animate";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BorderBeam } from "@/components/ui/border-beam";
-import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { MockAppUI } from "@/components/ui/mock-app-ui";
 
 import {
@@ -82,15 +80,6 @@ export default function Landing() {
   const router = useRouter();
   const { user } = useAuth();
 
-  // Refs for animated beam
-  const containerRef = useRef<HTMLDivElement>(null);
-  const div1Ref = useRef<HTMLDivElement>(null);
-  const div2Ref = useRef<HTMLDivElement>(null);
-  const div3Ref = useRef<HTMLDivElement>(null);
-  const div4Ref = useRef<HTMLDivElement>(null);
-  const div6Ref = useRef<HTMLDivElement>(null);
-  const div7Ref = useRef<HTMLDivElement>(null);
-
   return (
     <>
       {/* Hero Section with GIF Background */}
@@ -102,7 +91,6 @@ export default function Landing() {
           backgroundPosition: "80% 50%",
           backgroundRepeat: "no-repeat",
           backgroundBlendMode: "exclusion",
-          backgroundAttachment: "fixed",
         }}
       >
         <div className="absolute inset-0 z-0"></div>
@@ -229,8 +217,9 @@ export default function Landing() {
           <div className="max-w-4xl mx-auto text-center">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
               className="text-sm font-mono text-white/70 mb-8"
             >
               Built on trusted infrastructure
@@ -238,8 +227,9 @@ export default function Landing() {
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.9 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
               className="flex items-center justify-center gap-12 flex-wrap"
             >
               {/* Cohere Logo */}
@@ -296,8 +286,9 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
               className="mb-8"
             >
               <div className="inline-block px-4 py-2 bg-white/5 border border-white/10">
@@ -309,8 +300,9 @@ export default function Landing() {
 
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               className="text-3xl font-mono text-white mb-4 max-w-4xl mx-auto"
             >
               Skip months of user research with AI-powered market simulation
@@ -318,8 +310,9 @@ export default function Landing() {
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
               className="text-sm font-mono text-white/70 mb-16 max-w-2xl mx-auto"
             >
               Test ideas, posts, ads, and products against diverse AI personas.
@@ -330,8 +323,9 @@ export default function Landing() {
               {/* Market Simulation Card */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
                 className="border border-white/10 bg-black/40 p-6 hover:bg-white/5 hover:border-white/20 transition-all duration-300 text-left group hover:shadow-lg hover:shadow-white/5"
               >
                 <motion.div
@@ -353,8 +347,9 @@ export default function Landing() {
               {/* Multi-Platform Testing Card */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.9 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
                 className="border border-white/10 bg-black/40 p-6 hover:bg-white/5 hover:border-white/20 transition-all duration-300 text-left group hover:shadow-lg hover:shadow-white/5"
               >
                 <motion.div
@@ -376,8 +371,9 @@ export default function Landing() {
               {/* Instant Insights Card */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1.0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
                 className="border border-white/10 bg-black/40 p-6 hover:bg-white/5 hover:border-white/20 transition-all duration-300 text-left group hover:shadow-lg hover:shadow-white/5"
               >
                 <motion.div
@@ -411,8 +407,9 @@ export default function Landing() {
               {/* Competitor Analysis Card */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1.1 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.3 }}
                 className="border border-white/10 bg-black/40 p-6 hover:bg-white/5 hover:border-white/20 transition-all duration-300 text-left group hover:shadow-lg hover:shadow-white/5"
               >
                 <motion.div
